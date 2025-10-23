@@ -11,7 +11,7 @@ public class EventRequest {
     public String type; // concert / theater / etc.
     public String venue;
     // JSON’dan tarih okurken formatı belirtelim:
-    @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm")
+    @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss")
     private LocalDateTime dateTime;
     public int totalSeats;
     public BigDecimal price;

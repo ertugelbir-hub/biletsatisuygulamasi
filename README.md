@@ -35,3 +35,4 @@ Amaç; etkinlik oluşturma, kullanıcı kaydı, bilet satın alma ve satış rap
    ```bash
    git clone https://github.com/ertugelbir-hub/biletsatisuygulamasi.git
    cd biletsatisuygulamasi
+-----------------------------------------------------

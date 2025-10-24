@@ -4,6 +4,9 @@ import com.ticketapp.dto.EventRequest;
 import com.ticketapp.dto.SalesReport;
 import com.ticketapp.entity.Event;
 import com.ticketapp.service.EventService;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -43,6 +46,19 @@ public class EventController {
     public ResponseEntity<SalesReport> sales(@RequestParam Long eventId) {
         return ResponseEntity.ok(service.salesReport(eventId));
     }
+    @GetMapping("/paged")   // <--- ÖNEMLİ: /api/events/paged olur
+    public ResponseEntity<Page<Event>> listPaged(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(defaultValue = "id,desc") String sort) {
+
+        String[] parts = sort.split(",");
+        Sort s = Sort.by(Sort.Direction.fromString(parts.length > 1 ? parts[1] : "asc"), parts[0]);
+        Page<Event> result = service.listPaged(PageRequest.of(page, size, s));
+        return ResponseEntity.ok(result);
+    }
+
+
 
 }
 

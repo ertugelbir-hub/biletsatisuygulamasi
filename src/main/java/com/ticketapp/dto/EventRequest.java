@@ -11,7 +11,7 @@ public class EventRequest {
     public String type; // concert / theater / etc.
     public String venue;
     // JSON’dan tarih okurken formatı belirtelim:
-    @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss")
+    @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm")
     private LocalDateTime dateTime;
     public int totalSeats;
     public BigDecimal price;
@@ -42,6 +42,7 @@ public class EventRequest {
     public String getVenue() { return venue; }
     public void setVenue(String venue) { this.venue = venue; }
 
+    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd'T'HH:mm")
     public LocalDateTime getDateTime() { return dateTime; }
     public void setDateTime(LocalDateTime dateTime) { this.dateTime = dateTime; }
 

@@ -1,6 +1,7 @@
 package com.ticketapp.config;
 
 import com.ticketapp.security.JwtAuthFilter;
+import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
@@ -9,7 +10,9 @@ import org.springframework.security.config.annotation.web.configuration.EnableWe
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.web.AuthenticationEntryPoint;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.access.AccessDeniedHandler;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
 @Configuration
@@ -43,13 +46,22 @@ public class SecurityConfig {
                         // Event listesini herkes görebilsin (istersen authenticated yapabilirsin)
                         .requestMatchers(HttpMethod.GET, "/api/events/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/events/reports/**").hasRole("ADMIN")
+
                         .anyRequest().permitAll()
 
 
                 )
+                .exceptionHandling(e -> e
+                        .accessDeniedHandler(accessDeniedHandler())
+                        .authenticationEntryPoint(authenticationEntryPoint())
+                )
 
-                // H2 console için frame header'larını kapat
+
+
+
+        // H2 console için frame header'larını kapat
                 .headers(headers -> headers.frameOptions(frame -> frame.disable()))
+
                 .addFilterBefore(jwt, UsernamePasswordAuthenticationFilter.class);
         //* Login ekranlarını kapatalım (istemiyoruz)
         //*  .httpBasic(httpBasic -> httpBasic.disable())
@@ -63,4 +75,27 @@ public class SecurityConfig {
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
     }
+    // com.ticketapp.config.SecurityConfig içinde bean olarak:
+    @Bean
+    AccessDeniedHandler accessDeniedHandler() {
+        return (req, res, ex) -> {
+            res.setStatus(HttpServletResponse.SC_FORBIDDEN);
+            res.setContentType("application/json");
+            res.getWriter().write("""
+            {"error":"forbidden","message":"You don't have permission to perform this action"}
+        """);
+        };
+    }
+
+    @Bean
+    AuthenticationEntryPoint authenticationEntryPoint() {
+        return (req, res, ex) -> {
+            res.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+            res.setContentType("application/json");
+            res.getWriter().write("""
+            {"error":"unauthorized","message":"Authentication required"}
+        """);
+        };
+    }
+
 }

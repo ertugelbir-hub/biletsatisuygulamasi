@@ -11,8 +11,11 @@ package com.ticketapp.dto;
  *   "role": "CUSTOMER"
  * }
  */
+import jakarta.validation.constraints.*;
 public class RegisterRequest {
-    private String username;
+    @NotBlank(message = "Kullanıcı adı zorunludur") public String username;
+    @NotBlank(message = "Şifre zorunludur ve 4 ile 64 basamak olmalıdır")
+    @Size(min = 4, max = 64)
     private String password;
     private String email;
     private String role;

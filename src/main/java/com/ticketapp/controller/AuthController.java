@@ -5,6 +5,7 @@ import com.ticketapp.dto.RegisterRequest;
 import com.ticketapp.entity.User;
 import com.ticketapp.security.JwtService;
 import com.ticketapp.service.UserService;
+import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -13,7 +14,9 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.Map;
-
+//Spring’de @Valid, kullanıcıdan gelen veriyi (request body) doğrulamak için kullanılır.
+//Yani sen @NotBlank, @Positive, @NotNull gibi kuralları DTO’ya yazarsın,
+//@Valid ise o kuralları aktif hale getirir.
 @RestController                                     // SPRING: HTTP istekleri, JSON dönüş
 @RequestMapping("/api/auth")                        // SPRING: bu controller'ın base path'i
 public class AuthController {
@@ -32,7 +35,7 @@ public class AuthController {
     }
 
     @PostMapping("/register")                       // SPRING: POST /api/auth/register
-    public ResponseEntity<String> register(@RequestBody RegisterRequest req) {
+    public ResponseEntity<String> register(@RequestBody @Valid RegisterRequest req) {
         // Basit validasyon (boş username/password kabul etmiyoruz)
         if (req.getUsername() == null || req.getUsername().isBlank()
                 || req.getPassword() == null || req.getPassword().isBlank()) {

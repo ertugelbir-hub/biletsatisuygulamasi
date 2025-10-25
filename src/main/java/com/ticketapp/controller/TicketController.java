@@ -3,6 +3,7 @@ package com.ticketapp.controller;
 import com.ticketapp.dto.PurchaseRequest;
 import com.ticketapp.entity.Ticket;
 import com.ticketapp.service.TicketService;
+import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -19,7 +20,7 @@ public class TicketController {
     }
 
     @PostMapping("/purchase")
-    public ResponseEntity<Ticket> purchase(@RequestBody PurchaseRequest req,
+    public ResponseEntity<Ticket> purchase(@RequestBody @Valid PurchaseRequest req,
                                            Principal principal) {
         // principal.getName() = token’daki username
         return ResponseEntity.ok(service.purchase(req,principal.getName()));

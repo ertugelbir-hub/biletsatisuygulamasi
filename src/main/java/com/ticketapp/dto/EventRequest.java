@@ -1,20 +1,27 @@
 package com.ticketapp.dto;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
+import jakarta.validation.constraints.DecimalMin;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Positive;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 public class EventRequest {
-    public String title;
-    public String city;
-    public String type; // concert / theater / etc.
-    public String venue;
+    @NotBlank(message = "Etkinlik başlığı zorunludur") public String title;
+    @NotBlank public String city;
+    @NotBlank public String type;
+    @NotBlank public String venue; //boş olamaz @notblank
     // JSON’dan tarih okurken formatı belirtelim:
+    @NotNull(message = "Datetime yıl ay gün saat dakika şeklinde girilmelidir") // @boş olamaz @notnull
     @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm")
     private LocalDateTime dateTime;
-    public int totalSeats;
-    public BigDecimal price;
+    @Positive public int totalSeats; // pozitif olucak @positive
+    @NotNull
+    @DecimalMin(value = "0.01",message = "Fiyat 0'dan büyük olmalıdır")
+    public BigDecimal price; //boş olamaz min 0.01 olucak
 
     // Boş constructor (JSON -> DTO map’lemek için gerekli)
     public EventRequest() {}

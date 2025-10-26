@@ -5,6 +5,8 @@ import com.ticketapp.entity.Event;
 import com.ticketapp.entity.Ticket;
 import com.ticketapp.repository.EventRepository;
 import com.ticketapp.repository.TicketRepository;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -56,15 +58,24 @@ public class TicketService {
     public void cancel(Long ticketId, String username) {
         Ticket t = ticketRepo.findById(ticketId)
                 .orElseThrow(() -> new RuntimeException("Bilet bulunamadı"));
+        boolean owner = t.getUsername().equalsIgnoreCase(username);
 
-        if (!t.getUsername().equalsIgnoreCase(username))
+        // Kullanıcının yetkilerinde ROLE_ADMIN var mı?
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        boolean admin = auth != null && auth.getAuthorities().stream()
+                .anyMatch(a -> "ROLE_ADMIN".equals(a.getAuthority()));
+
+        if (!owner && !admin) {
             throw new RuntimeException("Bu bileti iptal etme yetkiniz yok");
-
-        Event e = t.getEvent();
-        e.setTotalSeats(e.getTotalSeats() + t.getQuantity());
-        eventRepo.save(e);
-
+        }
+        // NOT: totalSeats'i değiştirmiyoruz. Satış "sum(quantity)" ile hesaplandığı için
+        // bilet silmek zaten toplam satışı azaltır (iade etkisi otomatik yansır).
         ticketRepo.deleteById(ticketId);
+//        Event e = t.getEvent();
+//        e.setTotalSeats(e.getTotalSeats() + t.getQuantity());
+//        eventRepo.save(e);
+
+
     }
 
 

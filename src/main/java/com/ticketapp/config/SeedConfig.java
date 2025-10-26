@@ -21,7 +21,19 @@ public class SeedConfig {
                 u.setRole("ADMIN");                       // kritik: token’da ROLE_ADMIN olsun
                 userRepo.save(u);
                 System.out.println("Seed -> admin/admin123 oluşturuldu.");
+
+            }
+            if (userRepo.findByUsername("user") == null) {
+                User u1 = new User();
+                u1.setUsername("ayse");
+                u1.setPassword(encoder.encode("ayse123")); // giriş şifresi
+                u1.setEmail("ayse@example.com");
+                u1.setRole("USER");                       // kritik: token’da ROLE_USER olsun
+                userRepo.save(u1);
+                System.out.println("Seed -> user/user123 oluşturuldu.");
+
             }
         };
+
     }
 }

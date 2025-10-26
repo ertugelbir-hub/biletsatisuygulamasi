@@ -29,9 +29,9 @@ public class TicketService {
         if (r.quantity <= 0) throw new RuntimeException("Adet 1 veya daha fazla olmalı");
         if (e.getTotalSeats() < r.quantity) throw new RuntimeException("Yeterli koltuk yok");
 
-        // Koltuk düş
-        e.setTotalSeats(e.getTotalSeats() - r.quantity);
-        eventRepo.save(e);
+//        // Koltuk düş
+//        e.setTotalSeats(e.getTotalSeats() - r.quantity);
+//        eventRepo.save(e);
 
         // Bileti oluştur
         Ticket t = new Ticket();

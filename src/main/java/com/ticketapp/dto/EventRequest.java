@@ -1,6 +1,7 @@
 package com.ticketapp.dto;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
+import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -16,6 +17,7 @@ public class EventRequest {
     @NotBlank public String venue; //boş olamaz @notblank
     // JSON’dan tarih okurken formatı belirtelim:
     @NotNull(message = "Datetime yıl ay gün saat dakika şeklinde girilmelidir") // @boş olamaz @notnull
+    @Schema(example = "2025-12-10T20:00")
     @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm")
     private LocalDateTime dateTime;
     @Positive public int totalSeats; // pozitif olucak @positive
@@ -48,7 +50,7 @@ public class EventRequest {
 
     public String getVenue() { return venue; }
     public void setVenue(String venue) { this.venue = venue; }
-
+    @Schema(example = "2025-12-10T20:00")
     @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd'T'HH:mm")
     public LocalDateTime getDateTime() { return dateTime; }
     public void setDateTime(LocalDateTime dateTime) { this.dateTime = dateTime; }

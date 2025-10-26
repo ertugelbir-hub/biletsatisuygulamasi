@@ -3,11 +3,14 @@ package com.ticketapp.config;
 import jakarta.validation.ConstraintViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
+import java.time.format.DateTimeParseException;
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -36,10 +39,19 @@ public class GlobalExceptionHandler {
     }
 
     private String defaultMsg(FieldError fe) {
-        if ("dateTime".equals(fe.getField())) {
-            return "Tarih formatı yyyy-MM-dd'T'HH:mm olmalı. Örnek: 2025-12-10T20:00";
-        }// Mesaj boş gelirse default
-        return fe.getDefaultMessage() != null ? fe.getDefaultMessage() : "Geçersiz değer";
+        String def = fe.getDefaultMessage();
+        if (def != null && !def.isBlank()) return def;
+
+        switch (fe.getField()) {
+            case "eventId":
+                return "Etkinlik id girilmelidir";
+            case "username":
+                return "Kullanıcı adı (username) zorunludur";
+            case "quantity":
+                return "quantity en az 1 olmalı";
+            default:
+                return "Geçersiz değer";
+        }
     }
 
 
@@ -68,5 +80,46 @@ public class GlobalExceptionHandler {
         body.put("error", "runtime");
         body.put("message", ex.getMessage());
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(body);
+
     }
+    @ExceptionHandler(HttpMessageNotReadableException.class)
+    public ResponseEntity<Map<String, Object>> onJsonParse(HttpMessageNotReadableException ex) {
+        String msg = ex.getMostSpecificCause() != null
+                ? ex.getMostSpecificCause().getMessage()
+                : ex.getMessage();
+        // Spring 6 / Boot 3: kök nedeni doğrudan alalım
+        Throwable root = ex.getRootCause();
+        Map<String, Object> body = new LinkedHashMap<>();
+        body.put("error", "validation");
+
+        List<Map<String, String>> details = new ArrayList<>();
+
+        // ipucu: LocalDateTime parse hatası mı?
+        // LocalDateTime parse hatasını "tip güvenli" biçimde veya mesaj ipuçlarıyla yakala
+        boolean isDateTimeParse =
+                (root instanceof DateTimeParseException) ||
+                        (msg != null && (
+                                msg.contains("DateTimeParseException") ||  // bazı sürümlerde geçer
+                                        msg.contains("could not be parsed") ||     // tipik ifade
+                                        msg.contains("LocalDateTime")              // eski/diğer varyasyonlar
+                        ));
+
+        if (isDateTimeParse) {
+            details.add(Map.of(
+                    "field", "dateTime",
+                    "message", "Tarih formatı yyyy-MM-dd'T'HH:mm olmalı. Örn: 2025-12-10T20:00"
+            ));
+        } else {
+            details.add(Map.of(
+                    "field", "body",
+                    "message", "Geçersiz JSON veya alan formatı"
+            ));
+        }
+
+        body.put("details", details);
+        return ResponseEntity.badRequest().body(body);
+    }
+
+
 }
+

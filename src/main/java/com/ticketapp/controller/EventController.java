@@ -9,6 +9,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
@@ -25,28 +26,28 @@ public class EventController {
         this.service = service;
     }
     // CREATE (body doğrulaması)
+    @PreAuthorize("hasRole('ADMIN')")
     @PostMapping //admin
     public ResponseEntity<Event> create(@RequestBody @Valid EventRequest req) {
         return ResponseEntity.ok(service.create(req));
     }
 
     @GetMapping
-    public ResponseEntity<List<Event>> list() {
-        return ResponseEntity.ok(service.list());
+    public ResponseEntity<List<Event>> list() { return ResponseEntity.ok(service.list());
     }
-
+    @PreAuthorize("hasRole('ADMIN')")
     @PutMapping("/{id}")      // ADMIN
-    public ResponseEntity<Event> update(@PathVariable Long id, @RequestBody EventRequest req) {
+    public ResponseEntity<Event> update(@PathVariable Long id, @RequestBody @Valid EventRequest req) {
         return ResponseEntity.ok(service.update(id, req));
     }
-
+    @PreAuthorize("hasRole('ADMIN')")
     @DeleteMapping("/{id}")   // ADMIN
-    public ResponseEntity<String> delete(@PathVariable Long id) {
+    public ResponseEntity<String> delete(@Valid @PathVariable Long id) {
         service.delete(id);
         return ResponseEntity.ok("Silindi");
     }
     @GetMapping("/reports/sales")
-    public ResponseEntity<SalesReport> sales(@RequestParam Long eventId) {
+    public ResponseEntity<SalesReport> sales(@Valid @RequestParam Long eventId) {
         return ResponseEntity.ok(service.salesReport(eventId));
     } // LIST paged (parametre doğrulaması)
     @GetMapping("/paged")   // <--- ÖNEMLİ: /api/events/paged olur

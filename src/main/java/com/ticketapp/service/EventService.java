@@ -6,9 +6,13 @@ import com.ticketapp.entity.Event;
 import com.ticketapp.repository.EventRepository;
 import com.ticketapp.repository.TicketRepository;
 import org.springframework.data.domain.Page;
-import org.springframework.stereotype.Service;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.stereotype.Service;
+
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 
 @Service
@@ -70,6 +74,40 @@ public class EventService {
     public Page<Event> listPaged(Pageable pageable) {
         return repo.findAll(pageable);
     }
+
+    public Page<Event> search(String city, String type, String title,
+                              LocalDateTime from, LocalDateTime to, Pageable pageable) {
+        return repo.search(
+                (city == null || city.isBlank()) ? null : city,
+                (type == null || type.isBlank()) ? null : type,
+                (title == null || title.isBlank()) ? null : title,
+                from, to, pageable
+        );
+    }
+    public List<SalesReport> salesSummary(LocalDateTime from, LocalDateTime to) {
+        // 1) Aralıktaki etkinlikleri çek
+        Page<Event> page = repo.search(null, null, null, from, to, PageRequest.of(0, 1000));
+        List<Event> events = page.getContent();
+
+        // 2) Her event için sold/remaining/revenue hesapla
+        List<SalesReport> list = new ArrayList<>();
+        for (Event e : events) {
+            int sold = ticketRepo.sumQuantityByEventId(e.getId()); // toplam satış adedi
+            int remaining = Math.max(0, e.getTotalSeats() - sold); // kapasite - satılan
+            BigDecimal revenue = e.getPrice().multiply(BigDecimal.valueOf(sold)); // ciro
+
+            list.add(new SalesReport(
+                    e.getId(),
+                    e.getTitle(),
+                    e.getTotalSeats(), // kapasite (değişmeyen alan!)
+                    sold,
+                    remaining,
+                    revenue
+            ));
+        }
+        return list;
+    }
+
 
 }
 

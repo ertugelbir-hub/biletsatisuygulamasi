@@ -39,6 +39,11 @@ public class TicketController {
         service.cancel(ticketId, principal.getName());
         return ResponseEntity.ok("İptal edildi");
     }
+    @GetMapping("/api/tickets/my")
+    public ResponseEntity<List<Ticket>> myTickets(Principal principal) {
+        List<Ticket> list = service.myTickets(principal.getName());
+        return ResponseEntity.ok(list);
+    }
 
 
 }

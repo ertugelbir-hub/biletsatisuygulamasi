@@ -1,6 +1,30 @@
 package com.ticketapp.repository;
 
 import com.ticketapp.entity.Event;
-import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
-public interface    EventRepository extends JpaRepository<Event, Long> {}
+import java.time.LocalDateTime;
+
+public interface EventRepository extends org.springframework.data.jpa.repository.JpaRepository<Event, Long> {
+    @Query("""
+       select e from Event e
+       where (:city is null or lower(e.city) = lower(:city))
+         and (:type is null or lower(e.type) = lower(:type))
+         and (:title is null or lower(e.title) like lower(concat('%', :title, '%')))
+         and (:fromDate is null or e.dateTime >= :fromDate)
+         and (:toDate   is null or e.dateTime <= :toDate)
+       """)
+    Page<Event> search(
+            @Param("city") String city,
+            @Param("type") String type,
+            @Param("title") String title,
+            @Param("fromDate") LocalDateTime fromDate,
+            @Param("toDate") LocalDateTime toDate,
+            Pageable pageable
+    );
+
+
+}

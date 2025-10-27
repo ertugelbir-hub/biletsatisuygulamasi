@@ -14,6 +14,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 @Service
+
 public class TicketService {
     private final EventRepository eventRepo;
     private final TicketRepository ticketRepo;
@@ -78,5 +79,7 @@ public class TicketService {
 
     }
 
-
+    public List<Ticket> myTickets(String username) {
+        return ticketRepo.findByUsername(username);
+    }
 }

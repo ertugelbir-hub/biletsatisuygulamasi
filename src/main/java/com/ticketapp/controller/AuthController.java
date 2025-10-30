@@ -57,21 +57,21 @@ public class AuthController {
     }
 
     @PostMapping("/login")
-    public ResponseEntity<?> login(@RequestBody LoginRequest req) {
+    public ResponseEntity<?> login(@RequestBody @Valid LoginRequest req) {
         if (req.getUsername() == null || req.getUsername().isBlank()
                 || req.getPassword() == null || req.getPassword().isBlank()) {
             return ResponseEntity.badRequest().body("username ve password zorunlu");
         }
-
-        User u = userService.findByUsername(req.getUsername());
-        if (u == null) {
+        var maybeUser = userService.findByUsername(req.getUsername()); // Optional<User>
+        var user = maybeUser.orElse(null);
+        if (user == null) {
             return ResponseEntity.status(401).body("Kullanıcı bulunamadı");
         }
-        if (!passwordEncoder.matches(req.getPassword(), u.getPassword())) {
+        if (!passwordEncoder.matches(req.getPassword(), user.getPassword())) {
             return ResponseEntity.status(401).body("Şifre hatalı");
 
         }
-        String token = jwtService.generate(u.getUsername(), u.getRole());
+        String token = jwtService.generate(user.getUsername(), user.getRole());
         return ResponseEntity.ok(Map.of("token", token));
     }
 

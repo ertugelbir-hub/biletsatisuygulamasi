@@ -1,6 +1,5 @@
 package com.ticketapp.security;
 
-import com.ticketapp.entity.User;
 import com.ticketapp.service.UserService;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -11,6 +10,7 @@ import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
+
 import java.io.IOException;
 import java.util.List;
 
@@ -36,10 +36,18 @@ public class JwtAuthFilter extends OncePerRequestFilter {
                 String username = claims.getSubject();
                 String role = String.valueOf(claims.get("role"));
 
-                User u = userService.findByUsername(username);
-                if (u != null) {
+                var maybeUser = userService.findByUsername(username); // Optional<User>
+                if (maybeUser.isPresent()) {
+                    var u = maybeUser.get();
+
+                    // role claim'i yoksa bir default verelim (opsiyonel)
+                    String effectiveRole = (role != null && !role.isBlank()) ? role : "CUSTOMER";
+
                     var auth = new UsernamePasswordAuthenticationToken(
-                            username, null, List.of(new SimpleGrantedAuthority("ROLE_" + role)));
+                            u.getUsername(), // principal
+                            null,            // credentials
+                            List.of(new SimpleGrantedAuthority("ROLE_" + effectiveRole))
+                    );
                     SecurityContextHolder.getContext().setAuthentication(auth);
                 }
             } catch (Exception ignored) { /* token hatalı/expired ise anon devam */}

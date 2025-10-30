@@ -20,7 +20,9 @@ public class Event {
     private BigDecimal price;        // Basit olması için int
 
     public Event() {}
-
+    /** Optimistic Lock versiyonu — JPA bu alanı otomatik yönetir */
+    @Version
+    private Long version;
     // getters/setters
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
@@ -38,4 +40,7 @@ public class Event {
     public void setTotalSeats(int totalSeats) { this.totalSeats = totalSeats; }
     public BigDecimal getPrice() { return price; }
     public void setPrice(BigDecimal price) { this.price = price; }
+    public Long getVersion() { return version; }
+    public void setVersion(Long version) { this.version = version; }
 }
+

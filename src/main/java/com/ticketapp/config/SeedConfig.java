@@ -13,7 +13,8 @@ public class SeedConfig {
     @Bean
     CommandLineRunner seedAdmin(UserRepository userRepo, PasswordEncoder encoder) {
         return args -> {
-            if (userRepo.findByUsername("admin") == null) {
+            // ADMIN yoksa oluştur
+            if (userRepo.findByUsername("admin").isEmpty()) {
                 User u = new User();
                 u.setUsername("admin");
                 u.setPassword(encoder.encode("admin123")); // giriş şifresi
@@ -23,14 +24,26 @@ public class SeedConfig {
                 System.out.println("Seed -> admin/admin123 oluşturuldu.");
 
             }
-            if (userRepo.findByUsername("user") == null) {
+            // USER yoksa oluştur
+            if (userRepo.findByUsername("user").isEmpty()) {
                 User u1 = new User();
                 u1.setUsername("ayse");
                 u1.setPassword(encoder.encode("ayse123")); // giriş şifresi
                 u1.setEmail("ayse@example.com");
                 u1.setRole("USER");                       // kritik: token’da ROLE_USER olsun
                 userRepo.save(u1);
-                System.out.println("Seed -> user/user123 oluşturuldu.");
+                System.out.println("Seed -> ayse/ayse123 oluşturuldu.");
+
+            }
+            // USER2 yoksa oluştur
+            if (userRepo.findByUsername("user").isEmpty()) {
+                User u2 = new User();
+                u2.setUsername("ahmet");
+                u2.setPassword(encoder.encode("ahmet123")); // giriş şifresi
+                u2.setEmail("ahmet@example.com");
+                u2.setRole("USER");                       // kritik: token’da ROLE_USER olsun
+                userRepo.save(u2);
+                System.out.println("Seed -> ahmet/ahmet123 oluşturuldu.");
 
             }
         };

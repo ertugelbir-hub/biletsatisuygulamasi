@@ -1,6 +1,7 @@
 package com.ticketapp.config;
 
 import jakarta.validation.ConstraintViolationException;
+import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
@@ -118,6 +119,13 @@ public class GlobalExceptionHandler {
 
         body.put("details", details);
         return ResponseEntity.badRequest().body(body);
+    }
+    @ExceptionHandler(OptimisticLockingFailureException.class)
+    public ResponseEntity<Map<String, Object>> onOptLock(OptimisticLockingFailureException ex) {
+        Map<String, Object> body = new LinkedHashMap<>();
+        body.put("error", "concurrency");
+        body.put("message", "İşlem çakıştı, lütfen tekrar deneyin.");
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(body); // 409
     }
 
 

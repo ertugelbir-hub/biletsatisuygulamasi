@@ -5,6 +5,8 @@ import com.ticketapp.entity.Event;
 import com.ticketapp.entity.Ticket;
 import com.ticketapp.repository.EventRepository;
 import com.ticketapp.repository.TicketRepository;
+import com.ticketapp.repository.UserRepository;
+import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
@@ -18,42 +20,69 @@ import java.util.List;
 public class TicketService {
     private final EventRepository eventRepo;
     private final TicketRepository ticketRepo;
-
-    public TicketService(EventRepository eventRepo, TicketRepository ticketRepo) {
+    private final UserRepository userRepo;
+    public TicketService(EventRepository eventRepo, TicketRepository ticketRepo,UserRepository userRepo) {
         this.eventRepo = eventRepo;
         this.ticketRepo = ticketRepo;
+        this.userRepo = userRepo;
     }
+    /** Kaç defa tekrar denesin? Yüksek trafik için 3–5 yeterli */
+    private static final int MAX_RETRY = 3;
 
     @Transactional
     public Ticket purchase(PurchaseRequest r,String username) {
-        Event e = eventRepo.findById(r.eventId)
-                .orElseThrow(() -> new RuntimeException("Etkinlik bulunamadı"));
+        if (r.quantity <= 0) {
+            throw new RuntimeException("Adet 1 veya daha fazla olmalı");
+        }
 
-        if (r.quantity <= 0) throw new RuntimeException("Adet 1 veya daha fazla olmalı");
-        if (e.getTotalSeats() < r.quantity) throw new RuntimeException("Yeterli koltuk yok");
+        // (İsteğe bağlı) kullanıcıyı doğrula
+        userRepo.findByUsername(username)
+                .orElseThrow(() -> new RuntimeException("Kullanıcı bulunamadı"));
 
-//        // Koltuk düş
-//        e.setTotalSeats(e.getTotalSeats() - r.quantity);
-//        eventRepo.save(e);
+        for (int attempt = 1; attempt <= MAX_RETRY; attempt++) {
+            try {
+                // 1) Event oku
+                Event e = eventRepo.findById(r.eventId)
+                        .orElseThrow(() -> new RuntimeException("Etkinlik bulunamadı"));
 
-        // Bileti oluştur
-        Ticket t = new Ticket();
-        t.setEvent(e);
-        t.setUsername(username);
-        t.setQuantity(r.quantity);
-        t.setCreatedAt(LocalDateTime.now().toString());
+                // 2) Kalan koltuk = totalSeats - sold
+                int sold = ticketRepo.sumQuantityByEventId(e.getId());
+                int remaining = e.getTotalSeats() - sold;
 
-        return ticketRepo.save(t);
+                if (remaining < r.quantity) {
+                    throw new RuntimeException("Yeterli koltuk yok (kalan: " + remaining + ")");
+                }
+                //  3) Bileti oluştur
+                Ticket t = new Ticket();
+                t.setEvent(e);
+                t.setUsername(username);
+                t.setQuantity(r.quantity);
+                t.setCreatedAt(LocalDateTime.now().toString());
+
+                return ticketRepo.save(t);
+                // Not: versiyon çakışması olursa JPA flush’ta
+                // OptimisticLockingFailureException fırlatır ve catch’e düşer.
+
+
+            } catch (OptimisticLockingFailureException ex) {
+                // çakışma
+                if (attempt == MAX_RETRY) {
+                    throw new RuntimeException("İşlem çakıştı, lütfen tekrar deneyin.");
+                }
+                // küçük bir bekleme (isteğe bağlı)
+                try {
+                    Thread.sleep(50L * attempt);
+                } catch (InterruptedException ignored) {
+                }
+            }
+        }
+        throw new RuntimeException("Satın alma başarısız");
     }
-    public List<Ticket> listAll() {
-        return ticketRepo.findAll();
+    public List<Ticket> listAll() { return ticketRepo.findAll();
     }
 
     public List<Ticket> listByUsername(String username) {
-        return ticketRepo.findAll()
-                .stream()
-                .filter(t -> t.getUsername().equalsIgnoreCase(username))
-                .toList();
+        return ticketRepo.findByUsername(username);
     }
     @Transactional
     public void cancel(Long ticketId, String username) {

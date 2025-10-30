@@ -57,7 +57,7 @@ public class TicketService {
                 t.setEvent(e);
                 t.setUsername(username);
                 t.setQuantity(r.quantity);
-                t.setCreatedAt(LocalDateTime.now().toString());
+                t.setCreatedAt(LocalDateTime.now());
 
                 return ticketRepo.save(t);
                 // Not: versiyon çakışması olursa JPA flush’ta

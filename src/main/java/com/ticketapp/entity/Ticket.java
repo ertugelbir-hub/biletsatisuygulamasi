@@ -2,6 +2,8 @@ package com.ticketapp.entity;
 
 import jakarta.persistence.*;
 
+import java.time.LocalDateTime;
+
 @Entity
 @Table(name = "tickets")
 public class Ticket {
@@ -14,7 +16,7 @@ public class Ticket {
 
     private String username;  // Şimdilik basit tutuyoruz
     private int quantity;     // Kaç adet
-    private String createdAt; // Basit tutalım (ileride LocalDateTime yaparız)
+    private LocalDateTime createdAt; // Basit tutalım (ileride LocalDateTime yaparız)
 
     public Ticket() {}
 
@@ -30,6 +32,6 @@ public class Ticket {
     public int getQuantity() { return quantity; }
     public void setQuantity(int quantity) { this.quantity = quantity; }
 
-    public String getCreatedAt() { return createdAt; }
-    public void setCreatedAt(String createdAt) { this.createdAt = createdAt; }
+    public LocalDateTime getCreatedAt() { return createdAt; }
+    public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
 }

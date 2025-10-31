@@ -2,7 +2,6 @@
 package com.ticketapp.service;
 
 import com.ticketapp.dto.SalesSummaryItem;
-import com.ticketapp.entity.Event;
 import com.ticketapp.repository.EventRepository;
 import com.ticketapp.repository.TicketRepository;
 import org.springframework.stereotype.Service;
@@ -21,19 +20,38 @@ public class ReportService {
         this.eventRepo = eventRepo;
         this.ticketRepo = ticketRepo;
     }
+    // A) Purchase time
 
-    public List<SalesSummaryItem> salesSummary(LocalDateTime from, LocalDateTime to) {
-        // tüm event’leri çek (ileride filtre eklersin)
-        List<Event> events = eventRepo.findAll();
-        List<SalesSummaryItem> items = ticketRepo.summaryByEventDate(from, to);
-// Java tarafında revenue = price * sold
-        for (SalesSummaryItem i : items) {
-            if (i.price == null) {
-                i.price = BigDecimal.ZERO;
-            }
-            i.revenue = i.price.multiply(BigDecimal.valueOf(i.sold));
-        }
-        return items;
+    public List<SalesSummaryItem> summaryByPurchase(LocalDateTime from, LocalDateTime to) {
+        return eventRepo.findAll().stream().map(e -> {
+            int soldInRange = ticketRepo.sumQuantityByEventIdBetweenPurchase(e.getId(), from, to);
+            int allTimeSold = ticketRepo.sumQuantityByEventId(e.getId());
+            int remaining   = Math.max(0, e.getTotalSeats() - allTimeSold);
+
+            var price   = e.getPrice() == null ? BigDecimal.ZERO : e.getPrice();
+            var revenue = price.multiply(BigDecimal.valueOf(soldInRange));
+
+            return new SalesSummaryItem(
+                    e.getId(), e.getTitle(), e.getTotalSeats(),
+                    soldInRange, remaining, price, revenue
+            );
+        }).toList();
+    }
+    // B) Event date
+    public List<SalesSummaryItem> summaryByEvent(LocalDateTime from, LocalDateTime to) {
+        return eventRepo.findAll().stream().map(e -> {
+            int soldInRange = ticketRepo.sumQuantityByEventIdBetweenEventDate(e.getId(), from, to);
+            int allTimeSold = ticketRepo.sumQuantityByEventId(e.getId());
+            int remaining   = Math.max(0, e.getTotalSeats() - allTimeSold);
+
+            var price   = e.getPrice() == null ? BigDecimal.ZERO : e.getPrice();
+            var revenue = price.multiply(BigDecimal.valueOf(soldInRange));
+
+            return new SalesSummaryItem(
+                    e.getId(), e.getTitle(), e.getTotalSeats(),
+                    soldInRange, remaining, price, revenue
+            );
+        }).toList();
 
     }
 }

@@ -15,21 +15,29 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/reports")
+@RequestMapping("/api/reports/sales")
+@PreAuthorize("hasRole('ADMIN')")
 public class ReportController {
     private final ReportService reportService;
-
     public ReportController( ReportService reportService) { this.reportService = reportService;}
-    // Örn: /api/reports/sales/summary?from=2025-12-01T00:00&to=2025-12-31T23:59
-    @GetMapping("/sales/summary")
+
+    // A) Satın alma tarihine göre özet
+    @GetMapping("/summary-by-purchase")
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<List<SalesSummaryItem>> salesSummary(
+    public ResponseEntity<List<SalesSummaryItem>> summaryByPurchase(
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime from,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime to) {
+        return ResponseEntity.ok(reportService.summaryByPurchase(from, to));
+    }
+    // B) Etkinlik tarihine göre özet
+    @GetMapping("/summary-by-event")
+    public ResponseEntity<List<SalesSummaryItem>> summaryByEvent(
             @RequestParam @NotNull
             @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime from,
             @RequestParam @NotNull
-            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime to
-    ){
-        return ResponseEntity.ok(reportService.salesSummary(from, to));
+            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime to)
+    {
+        return ResponseEntity.ok(reportService.summaryByEvent(from, to));
     }
 
 }

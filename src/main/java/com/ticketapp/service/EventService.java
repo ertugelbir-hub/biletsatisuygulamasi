@@ -63,13 +63,25 @@ public class EventService {
         Event e = repo.findById(eventId)
                 .orElseThrow(() -> new RuntimeException("Event bulunamadı"));
 
-        int sold = ticketRepo.sumQuantityByEventId(eventId);
+        int sold = ticketRepo.sumQuantityByEventId(e.getId());
         int remaining = e.getTotalSeats() - sold;
         if (remaining < 0) remaining = 0;
 
-        BigDecimal revenue = e.getPrice().multiply(new BigDecimal(sold));
+        BigDecimal price = e.getPrice() == null ? BigDecimal.ZERO : e.getPrice();
+        BigDecimal revenue = price.multiply(BigDecimal.valueOf(sold));
 
-        return new SalesReport(e.getId(), e.getTitle(), e.getTotalSeats(), sold, remaining, revenue);
+        return new SalesReport(
+                e.getId(),
+                e.getTitle(),
+                e.getCity(),
+                e.getVenue(),
+                e.getDateTime(),
+                e.getTotalSeats(),
+                sold,
+                remaining,
+                price,
+                revenue
+        );
     }
     public Page<Event> listPaged(Pageable pageable) {
         return repo.findAll(pageable);
@@ -94,14 +106,19 @@ public class EventService {
         for (Event e : events) {
             int sold = ticketRepo.sumQuantityByEventId(e.getId()); // toplam satış adedi
             int remaining = Math.max(0, e.getTotalSeats() - sold); // kapasite - satılan
+            BigDecimal price = e.getPrice() == null ? BigDecimal.ZERO : e.getPrice();
             BigDecimal revenue = e.getPrice().multiply(BigDecimal.valueOf(sold)); // ciro
 
             list.add(new SalesReport(
                     e.getId(),
                     e.getTitle(),
-                    e.getTotalSeats(), // kapasite (değişmeyen alan!)
+                    e.getCity(),
+                    e.getVenue(),
+                    e.getDateTime(),
+                    e.getTotalSeats(),
                     sold,
                     remaining,
+                    price,
                     revenue
             ));
         }

@@ -1,5 +1,6 @@
 package com.ticketapp.controller;
 
+import com.ticketapp.dto.SalesReport;
 import com.ticketapp.dto.SalesSummaryItem;
 import com.ticketapp.service.ReportService;
 import jakarta.validation.constraints.NotNull;
@@ -39,5 +40,12 @@ public class ReportController {
     {
         return ResponseEntity.ok(reportService.summaryByEvent(from, to));
     }
+    // GET /api/reports/sales/alltime?eventId=1
+    @GetMapping("/sales/alltime")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<SalesReport> allTime(@RequestParam Long eventId) {
+        return ResponseEntity.ok(reportService.allTimeSales(eventId));
+    }
+
 
 }

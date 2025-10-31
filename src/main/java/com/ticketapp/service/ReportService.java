@@ -1,6 +1,7 @@
 // src/main/java/com/ticketapp/service/ReportService.java
 package com.ticketapp.service;
 
+import com.ticketapp.dto.SalesReport;
 import com.ticketapp.dto.SalesSummaryItem;
 import com.ticketapp.repository.EventRepository;
 import com.ticketapp.repository.TicketRepository;
@@ -52,6 +53,23 @@ public class ReportService {
                     soldInRange, remaining, price, revenue
             );
         }).toList();
-
     }
+    // C) All time
+    public SalesReport allTimeSales(Long eventId) {
+        var e = eventRepo.findById(eventId)
+                .orElseThrow(() -> new RuntimeException("Etkinlik bulunamadı"));
+
+        int soldAllTime = ticketRepo.sumQuantityByEventId(e.getId());
+        int remaining   = Math.max(0, e.getTotalSeats() - soldAllTime);
+
+        var price   = e.getPrice() == null ? BigDecimal.ZERO : e.getPrice();
+        var revenue = price.multiply(BigDecimal.valueOf(soldAllTime));
+
+        return new SalesReport(
+                e.getId(), e.getTitle(), e.getCity(), e.getVenue(),
+                e.getDateTime(), e.getTotalSeats(),
+                soldAllTime, remaining, price, revenue
+        );
+    }
+
 }

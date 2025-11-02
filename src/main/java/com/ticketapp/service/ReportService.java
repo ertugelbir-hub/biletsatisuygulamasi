@@ -1,15 +1,17 @@
 // src/main/java/com/ticketapp/service/ReportService.java
 package com.ticketapp.service;
 
+import com.ticketapp.dto.FullSalesReport;
 import com.ticketapp.dto.SalesReport;
 import com.ticketapp.dto.SalesSummaryItem;
 import com.ticketapp.repository.EventRepository;
 import com.ticketapp.repository.TicketRepository;
 import org.springframework.stereotype.Service;
-
+import com.ticketapp.entity.Event;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 public class ReportService {
@@ -70,6 +72,34 @@ public class ReportService {
                 e.getDateTime(), e.getTotalSeats(),
                 soldAllTime, remaining, price, revenue
         );
-    }
 
+
+    }
+    /** Birleşik rapor: tarih aralığı + all-time metrikler tek listede */
+    public List<FullSalesReport> full(LocalDateTime from, LocalDateTime to) {
+        List<Event> events = eventRepo.findAll();
+
+        return events.stream().map(e -> {
+            int soldInRange = ticketRepo.sumQuantityByEventIdBetweenPurchase(e.getId(), from, to);
+            int soldAllTime = ticketRepo.sumQuantityByEventId(e.getId());
+            int remaining = Math.max(0, e.getTotalSeats() - soldAllTime);
+
+            BigDecimal price = e.getPrice() == null ? BigDecimal.ZERO : e.getPrice();
+            BigDecimal revenueRange = price.multiply(BigDecimal.valueOf(soldInRange));
+            BigDecimal revenueAllTime = price.multiply(BigDecimal.valueOf(soldAllTime));
+
+            return new FullSalesReport(
+                    e.getId(),
+                    e.getTitle(),
+                    e.getTotalSeats(),
+                    soldInRange,
+                    soldAllTime,
+                    remaining,
+                    price,
+                    revenueRange,
+                    revenueAllTime
+            );
+        }).collect(Collectors.toList());
+    }
 }
+

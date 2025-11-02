@@ -4,14 +4,15 @@ package com.ticketapp.service;
 import com.ticketapp.dto.FullSalesReport;
 import com.ticketapp.dto.SalesReport;
 import com.ticketapp.dto.SalesSummaryItem;
+import com.ticketapp.entity.Event;
 import com.ticketapp.repository.EventRepository;
 import com.ticketapp.repository.TicketRepository;
 import org.springframework.stereotype.Service;
-import com.ticketapp.entity.Event;
+
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
-import java.util.stream.Collectors;
 
 @Service
 public class ReportService {
@@ -23,6 +24,7 @@ public class ReportService {
         this.eventRepo = eventRepo;
         this.ticketRepo = ticketRepo;
     }
+
     // A) Purchase time
 
     public List<SalesSummaryItem> summaryByPurchase(LocalDateTime from, LocalDateTime to) {
@@ -77,29 +79,53 @@ public class ReportService {
     }
     /** Birleşik rapor: tarih aralığı + all-time metrikler tek listede */
     public List<FullSalesReport> full(LocalDateTime from, LocalDateTime to) {
+        // Güvenlik: from > to geldiyse takas et
+        LocalDateTime f = from;
+        LocalDateTime t = to;
+        if (f != null && t != null && f.isAfter(t)) {
+            LocalDateTime tmp = f; f = t; t = tmp;
+        }
+        // 2) tüm etkinlikleri çek
         List<Event> events = eventRepo.findAll();
+        List<FullSalesReport> out = new ArrayList<>(events.size());
+        // 3) her etkinlik için metrikleri hesapla
+        for (Event e : events) {
+            Long eventId = e.getId();
 
-        return events.stream().map(e -> {
-            int soldInRange = ticketRepo.sumQuantityByEventIdBetweenPurchase(e.getId(), from, to);
-            int soldAllTime = ticketRepo.sumQuantityByEventId(e.getId());
-            int remaining = Math.max(0, e.getTotalSeats() - soldAllTime);
+            // all-time satış
+            int soldAllTime = ticketRepo.sumQuantityByEventId(eventId);
+            if (soldAllTime < 0) soldAllTime = 0;
 
+            // tarih aralığı satışı (from/to ikisi de verilmişse)
+            int soldInRange = 0;
+            if (f != null && t != null) {
+                soldInRange = ticketRepo.sumQuantityByEventIdBetweenPurchase(eventId, f, t);
+                if (soldInRange < 0) soldInRange = 0;
+            }
+            // kalan koltuk
+            int totalSeats = e.getTotalSeats();
+            int remaining = totalSeats - soldAllTime;
+            if (remaining < 0) remaining = 0;
+
+            // fiyat ve gelirler
             BigDecimal price = e.getPrice() == null ? BigDecimal.ZERO : e.getPrice();
             BigDecimal revenueRange = price.multiply(BigDecimal.valueOf(soldInRange));
             BigDecimal revenueAllTime = price.multiply(BigDecimal.valueOf(soldAllTime));
-
-            return new FullSalesReport(
-                    e.getId(),
+            // DTO
+            out.add(new FullSalesReport(
+                    eventId,
                     e.getTitle(),
-                    e.getTotalSeats(),
+                    totalSeats,
                     soldInRange,
                     soldAllTime,
                     remaining,
                     price,
                     revenueRange,
                     revenueAllTime
-            );
-        }).collect(Collectors.toList());
+            ));
+        }
+
+        return out;
     }
 }
 

@@ -8,6 +8,9 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import jakarta.validation.constraints.NotNull;
 import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -76,6 +79,27 @@ public class ReportController {
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime from,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime to) {
         return ResponseEntity.ok(reportService.full(from, to));
+    }
+    @Operation(
+            summary = "Birleşik raporu CSV indir",
+            description = "Full raporu (tarih aralığı + all-time) CSV dosyası olarak döndürür."
+    )
+    @ApiResponse(responseCode = "200", description = "Başarılı")
+    @GetMapping("/api/reports/sales/full.csv")
+    public ResponseEntity<byte[]> fullCsv(
+            @RequestParam(required = false)
+            @DateTimeFormat(pattern = "yyyy-MM-dd'T'HH:mm") LocalDateTime from,
+            @RequestParam(required = false)
+            @DateTimeFormat(pattern = "yyyy-MM-dd'T'HH:mm") LocalDateTime to
+    ) {
+        byte[] csv = reportService.fullCsv(from, to);
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(new MediaType("text", "csv"));
+        headers.set(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"full-sales-report.csv\"");
+        headers.set(HttpHeaders.CACHE_CONTROL, "no-cache, no-store, must-revalidate");
+
+        return new ResponseEntity<>(csv, headers, HttpStatus.OK);
     }
 
 

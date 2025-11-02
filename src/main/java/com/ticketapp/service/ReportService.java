@@ -10,6 +10,7 @@ import com.ticketapp.repository.TicketRepository;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
+import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -126,6 +127,28 @@ public class ReportService {
         }
 
         return out;
+    }
+    public byte[] fullCsv(LocalDateTime from, LocalDateTime to) {
+        List<FullSalesReport> list = full(from, to);
+
+        StringBuilder sb = new StringBuilder();
+        // Başlık satırı
+        sb.append("eventId,title,totalSeats,soldInRange,soldAllTime,remaining,price,revenueRange,revenueAllTime\n");
+
+        for (FullSalesReport r : list) {
+            sb.append(r.eventId).append(",");
+            // CSV güvenliği: başlıkta virgül olursa tırnakla
+            sb.append("\"").append(r.title == null ? "" : r.title.replace("\"","\"\"")).append("\",");
+            sb.append(r.totalSeats).append(",");
+            sb.append(r.soldInRange).append(",");
+            sb.append(r.soldAllTime).append(",");
+            sb.append(r.remaining).append(",");
+            sb.append(r.price == null ? "0" : r.price).append(",");
+            sb.append(r.revenueRange == null ? "0" : r.revenueRange).append(",");
+            sb.append(r.revenueAllTime == null ? "0" : r.revenueAllTime).append("\n");
+        }
+
+        return sb.toString().getBytes(StandardCharsets.UTF_8);
     }
 }
 

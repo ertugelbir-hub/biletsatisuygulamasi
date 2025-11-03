@@ -5,6 +5,11 @@ import com.ticketapp.dto.SalesReport;
 import com.ticketapp.dto.SalesSummaryItem;
 import com.ticketapp.service.ReportService;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.media.ArraySchema;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.ExampleObject;
+import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import jakarta.validation.constraints.NotNull;
 import org.springframework.data.domain.Page;
@@ -72,13 +77,38 @@ public class ReportController {
             summary = "Birleşik rapor: tarih aralığı + all-time",
             description = "Her etkinlik için hem [from,to] aralığındaki satışı hem de tüm zaman satışı ve gelirlerini birlikte döner."
     )
-    @ApiResponse(responseCode = "200", description = "Başarılı")
+    @ApiResponse(
+            responseCode = "200",
+            description = "Başarılı",
+            content = @Content(
+                    mediaType = "application/json",
+                    array = @ArraySchema(schema = @Schema(implementation = FullSalesReport.class)),
+                    examples = @ExampleObject(
+                            name = "Örnek Liste",
+                            value = "[{\n" +
+                                    "  \"eventId\": 1,\n" +
+                                    "  \"title\": \"Swagger Test Konseri\",\n" +
+                                    "  \"totalSeats\": 10,\n" +
+                                    "  \"soldInRange\": 0,\n" +
+                                    "  \"soldAllTime\": 3,\n" +
+                                    "  \"remaining\": 7,\n" +
+                                    "  \"price\": 150,\n" +
+                                    "  \"revenueRange\": 0,\n" +
+                                    "  \"revenueAllTime\": 450\n" +
+                                    "}]"
+                    )
+            )
+    )
     @GetMapping("/sales/full")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<List<FullSalesReport>> full(
-
-            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime from,
-            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime to) {
+            @Parameter(example = "2025-12-01T00:00")
+            @RequestParam(required = false)
+            @DateTimeFormat(pattern = "yyyy-MM-dd'T'HH:mm") LocalDateTime from,
+            @Parameter(example = "2025-12-31T23:59")
+            @RequestParam(required = false)
+            @DateTimeFormat(pattern = "yyyy-MM-dd'T'HH:mm") LocalDateTime to
+    ) {
         return ResponseEntity.ok(reportService.full(from, to));
     }
     @Operation(
@@ -110,17 +140,52 @@ public class ReportController {
             summary = "Birleşik rapor (sayfalı)",
             description = "Full raporu sayfalı döndürür. Varsayılan: page=0, size=10, sort=title, dir=asc"
     )
-    @ApiResponse(responseCode = "200", description = "Başarılı")
+    @ApiResponse(
+            responseCode = "200",
+            description = "Başarılı",
+            content = @Content(
+                    mediaType = "application/json",
+                    examples = @ExampleObject(
+                            name = "Page Örneği",
+                            value = "{\n" +
+                                    "  \"content\": [\n" +
+                                    "    {\n" +
+                                    "      \"eventId\": 1,\n" +
+                                    "      \"title\": \"Swagger Test Konseri\",\n" +
+                                    "      \"totalSeats\": 10,\n" +
+                                    "      \"soldInRange\": 0,\n" +
+                                    "      \"soldAllTime\": 3,\n" +
+                                    "      \"remaining\": 7,\n" +
+                                    "      \"price\": 150,\n" +
+                                    "      \"revenueRange\": 0,\n" +
+                                    "      \"revenueAllTime\": 450\n" +
+                                    "    }\n" +
+                                    "  ],\n" +
+                                    "  \"pageable\": {\"pageNumber\": 0, \"pageSize\": 10, \"offset\": 0, \"paged\": true},\n" +
+                                    "  \"last\": true,\n" +
+                                    "  \"totalElements\": 1,\n" +
+                                    "  \"totalPages\": 1,\n" +
+                                    "  \"size\": 10,\n" +
+                                    "  \"number\": 0,\n" +
+                                    "  \"first\": true,\n" +
+                                    "  \"numberOfElements\": 1,\n" +
+                                    "  \"empty\": false\n" +
+                                    "}"
+                    )
+            )
+    )
     @GetMapping("/api/reports/sales/full/page")
     public ResponseEntity<Page<FullSalesReport>> fullPaged(
+            @Parameter(example = "2025-12-01T00:00")
             @RequestParam(required = false)
             @DateTimeFormat(pattern = "yyyy-MM-dd'T'HH:mm") LocalDateTime from,
+            @Parameter(example = "2025-12-31T23:59")
             @RequestParam(required = false)
             @DateTimeFormat(pattern = "yyyy-MM-dd'T'HH:mm") LocalDateTime to,
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size,
-            @RequestParam(defaultValue = "title") String sort,
-            @RequestParam(defaultValue = "asc") String dir
+            @Parameter(example = "0") @RequestParam(defaultValue = "0") int page,
+            @Parameter(example = "10") @RequestParam(defaultValue = "10") int size,
+            @Parameter(example = "title") @RequestParam(defaultValue = "title") String sort,
+            @Parameter(example = "asc") @RequestParam(defaultValue = "asc") String dir
     ) {
         return ResponseEntity.ok(reportService.fullPaged(from, to, page, size, sort, dir));
     }

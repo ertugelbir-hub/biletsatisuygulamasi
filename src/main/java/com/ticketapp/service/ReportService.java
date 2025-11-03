@@ -1,6 +1,14 @@
 // src/main/java/com/ticketapp/service/ReportService.java
 package com.ticketapp.service;
 
+import com.lowagie.text.Document;
+import com.lowagie.text.Font;
+import com.lowagie.text.PageSize;
+import com.lowagie.text.Paragraph;
+import com.lowagie.text.pdf.BaseFont;
+import com.lowagie.text.pdf.PdfPCell;
+import com.lowagie.text.pdf.PdfPTable;
+import com.lowagie.text.pdf.PdfWriter;
 import com.ticketapp.dto.FullSalesReport;
 import com.ticketapp.dto.SalesReport;
 import com.ticketapp.dto.SalesSummaryItem;
@@ -229,6 +237,86 @@ public class ReportService {
 
         // 5) Page metadata ile dön
         return new PageImpl<>(content, pageable, eventPage.getTotalElements());
+    }
+    // PDF dosya adı
+    public String fullPdfFilename(LocalDateTime from, LocalDateTime to) {
+        DateTimeFormatter F = DateTimeFormatter.ofPattern("yyyyMMdd-HHmm");
+        if (from != null && to != null) {
+            LocalDateTime a = from.isAfter(to) ? to : from;
+            LocalDateTime b = from.isAfter(to) ? from : to;
+            return "full-sales-report_" + F.format(a) + "_to_" + F.format(b) + ".pdf";
+        }
+        return "full-sales-report.pdf";
+    }
+    /** Full raporu PDF olarak üretir (Türkçe karakter desteği CP1254). */
+    public byte[] fullPdf(LocalDateTime from, LocalDateTime to) {
+        List<FullSalesReport> list = full(from, to);
+
+        try {
+            ByteArrayOutputStream baos = new ByteArrayOutputStream();
+            Document doc = new Document(PageSize.A4.rotate(), 36, 36, 24, 24); // yatay A4
+            PdfWriter.getInstance(doc, baos);
+            doc.open();
+
+            // Türkçe karakterler için CP1254 kodlamalı standart font
+            BaseFont bf = BaseFont.createFont(BaseFont.HELVETICA, "Cp1254", BaseFont.EMBEDDED);
+            Font headerFont = new Font(bf, 12, Font.BOLD);
+            Font cellFont   = new Font(bf, 10, Font.NORMAL);
+
+            // Başlık
+            String title = "Birleşik Satış Raporu";
+            Paragraph p = new Paragraph(title, headerFont);
+            p.setSpacingAfter(10f);
+            doc.add(p);
+
+            // Tablo (9 sütun)
+            PdfPTable table = new PdfPTable(9);
+            table.setWidthPercentage(100);
+            table.setWidths(new float[]{10f, 26f, 10f, 12f, 12f, 10f, 10f, 12f, 12f});
+
+            // Header hücreleri
+            addHeader(table, "ID", headerFont);
+            addHeader(table, "Etkinlik Adı", headerFont);
+            addHeader(table, "Toplam", headerFont);
+            addHeader(table, "Aralık Satış", headerFont);
+            addHeader(table, "Tüm Zaman", headerFont);
+            addHeader(table, "Kalan", headerFont);
+            addHeader(table, "Fiyat", headerFont);
+            addHeader(table, "Aralık Geliri", headerFont);
+            addHeader(table, "Toplam Gelir", headerFont);
+
+            // Satırlar
+            for (FullSalesReport r : list) {
+                addCell(table, String.valueOf(r.eventId), cellFont);
+                addCell(table, r.title == null ? "" : r.title, cellFont);
+                addCell(table, String.valueOf(r.totalSeats), cellFont);
+                addCell(table, String.valueOf(r.soldInRange), cellFont);
+                addCell(table, String.valueOf(r.soldAllTime), cellFont);
+                addCell(table, String.valueOf(r.remaining), cellFont);
+                addCell(table, r.price == null ? "0" : r.price.toPlainString(), cellFont);
+                addCell(table, r.revenueRange == null ? "0" : r.revenueRange.toPlainString(), cellFont);
+                addCell(table, r.revenueAllTime == null ? "0" : r.revenueAllTime.toPlainString(), cellFont);
+            }
+
+            doc.add(table);
+            doc.close();
+            return baos.toByteArray();
+        } catch (Exception ex) {
+            throw new RuntimeException("PDF oluşturulamadı", ex);
+        }
+    }
+
+    // küçük yardımcılar
+    private void addHeader(PdfPTable table, String text, Font font) {
+        PdfPCell cell = new PdfPCell(new Paragraph(text, font)); // hücre + yazı
+        cell.setPadding(5f); // biraz boşluk bırak
+        table.addCell(cell); // tabloya ekle
+    }
+
+    private void addCell(PdfPTable table, String text, Font font) {
+        PdfPCell cell = new PdfPCell(new Paragraph(text, font));// normal hücre
+        cell.setPadding(4f); // biraz dar boşluk
+        table.addCell(cell);
     }
 
 }

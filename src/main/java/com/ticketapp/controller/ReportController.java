@@ -189,4 +189,28 @@ public class ReportController {
     ) {
         return ResponseEntity.ok(reportService.fullPaged(from, to, page, size, sort, dir));
     }
+    @Operation(
+            summary = "Birleşik raporu PDF indir",
+            description = "Full raporu (tarih aralığı + all-time) PDF olarak döndürür."
+    )
+    @ApiResponse(responseCode = "200", description = "Başarılı")
+    @GetMapping("/api/reports/sales/full.pdf")
+    public ResponseEntity<byte[]> fullPdf(
+            @Parameter(example = "2025-12-01T00:00")
+            @RequestParam(required = false)
+            @DateTimeFormat(pattern = "yyyy-MM-dd'T'HH:mm") LocalDateTime from,
+            @Parameter(example = "2025-12-31T23:59")
+            @RequestParam(required = false)
+            @DateTimeFormat(pattern = "yyyy-MM-dd'T'HH:mm") LocalDateTime to
+    ) {
+        byte[] pdf = reportService.fullPdf(from, to);
+        String filename = reportService.fullPdfFilename(from, to);
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_PDF);
+        headers.set(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + filename + "\"");
+        headers.set(HttpHeaders.CACHE_CONTROL, "no-cache, no-store, must-revalidate");
+
+        return new ResponseEntity<>(pdf, headers, HttpStatus.OK);
+    }
 }

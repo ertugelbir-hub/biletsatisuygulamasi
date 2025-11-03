@@ -7,6 +7,7 @@ import com.ticketapp.service.ReportService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import jakarta.validation.constraints.NotNull;
+import org.springframework.data.domain.Page;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -105,4 +106,22 @@ public class ReportController {
     }
 
 
+    @Operation(
+            summary = "Birleşik rapor (sayfalı)",
+            description = "Full raporu sayfalı döndürür. Varsayılan: page=0, size=10, sort=title, dir=asc"
+    )
+    @ApiResponse(responseCode = "200", description = "Başarılı")
+    @GetMapping("/api/reports/sales/full/page")
+    public ResponseEntity<Page<FullSalesReport>> fullPaged(
+            @RequestParam(required = false)
+            @DateTimeFormat(pattern = "yyyy-MM-dd'T'HH:mm") LocalDateTime from,
+            @RequestParam(required = false)
+            @DateTimeFormat(pattern = "yyyy-MM-dd'T'HH:mm") LocalDateTime to,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(defaultValue = "title") String sort,
+            @RequestParam(defaultValue = "asc") String dir
+    ) {
+        return ResponseEntity.ok(reportService.fullPaged(from, to, page, size, sort, dir));
+    }
 }

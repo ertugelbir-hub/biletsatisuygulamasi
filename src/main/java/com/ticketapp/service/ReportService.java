@@ -7,10 +7,11 @@ import com.ticketapp.dto.SalesSummaryItem;
 import com.ticketapp.entity.Event;
 import com.ticketapp.repository.EventRepository;
 import com.ticketapp.repository.TicketRepository;
+import org.springframework.data.domain.*;
 import org.springframework.stereotype.Service;
 
-import java.math.BigDecimal;
 import java.io.ByteArrayOutputStream;
+import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -182,5 +183,53 @@ public class ReportService {
         }
         return "full-sales-report.csv";
     }
+    // --- SAYFALI FULL RAPOR (Page<FullSalesReport>) ---
+
+    /** Full raporun sayfalı sürümü: page/size/sort/dir parametresi ile */
+    public Page<FullSalesReport> fullPaged(LocalDateTime from, LocalDateTime to,
+                                           int page, int size, String sort, String dir) {
+        // 1) Sıralama ve sayfalama ayarları
+        Sort.Direction direction = "desc".equalsIgnoreCase(dir) ? Sort.Direction.DESC : Sort.Direction.ASC;
+        Pageable pageable = PageRequest.of(page, size, Sort.by(direction, sort));
+
+        // 2) Event'leri sayfalı çek
+        var eventPage = eventRepo.findAll(pageable);
+
+        // 3) from>to ise takas (null'lar sorun değil)
+        LocalDateTime f = from, t = to;
+        if (f != null && t != null && f.isAfter(t)) { LocalDateTime tmp = f; f = t; t = tmp; }
+
+        // 4) Her event için metrikleri hesapla (full(...) ile aynı mantık)
+        List<FullSalesReport> content = new ArrayList<>(eventPage.getContent().size());
+        for (Event e : eventPage.getContent()) {
+            Long eventId = e.getId();
+
+            int soldAllTime = ticketRepo.sumQuantityByEventId(eventId);
+            if (soldAllTime < 0) soldAllTime = 0;
+
+            int soldInRange = 0;
+            if (f != null && t != null) {
+                soldInRange = ticketRepo.sumQuantityByEventIdBetweenPurchase(eventId, f, t);
+                if (soldInRange < 0) soldInRange = 0;
+            }
+
+            int totalSeats = e.getTotalSeats();
+            int remaining = Math.max(0, totalSeats - soldAllTime);
+
+            BigDecimal price = (e.getPrice() == null) ? BigDecimal.ZERO : e.getPrice();
+            BigDecimal revenueRange   = price.multiply(BigDecimal.valueOf(soldInRange));
+            BigDecimal revenueAllTime = price.multiply(BigDecimal.valueOf(soldAllTime));
+
+            content.add(new FullSalesReport(
+                    eventId, e.getTitle(), totalSeats,
+                    soldInRange, soldAllTime, remaining,
+                    price, revenueRange, revenueAllTime
+            ));
+        }
+
+        // 5) Page metadata ile dön
+        return new PageImpl<>(content, pageable, eventPage.getTotalElements());
+    }
+
 }
 

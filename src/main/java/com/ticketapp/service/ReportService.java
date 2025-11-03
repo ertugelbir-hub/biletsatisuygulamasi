@@ -10,8 +10,10 @@ import com.ticketapp.repository.TicketRepository;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
+import java.io.ByteArrayOutputStream;
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -128,17 +130,28 @@ public class ReportService {
 
         return out;
     }
+    /**
+     * Excel-dostu CSV (UTF-8 BOM + Türkçe başlıklar).
+     * Mevcut full(from,to) verisini kullanır.
+     */
     public byte[] fullCsv(LocalDateTime from, LocalDateTime to) {
+        // 1) Veriyi hazırla
         List<FullSalesReport> list = full(from, to);
 
         StringBuilder sb = new StringBuilder();
         // Başlık satırı
         sb.append("eventId,title,totalSeats,soldInRange,soldAllTime,remaining,price,revenueRange,revenueAllTime\n");
-
+        // 3) Satırlar
         for (FullSalesReport r : list) {
+            // başlıkta/isimde virgül vb. varsa Excel için tırnakla ve iç tırnakları kaçır
+            String title = r.title == null ? "" : r.title.replace("\"", "\"\"");
+            String price = r.price == null ? "0" : r.price.toPlainString();
+            String revenueRange = r.revenueRange == null ? "0" : r.revenueRange.toPlainString();
+            String revenueAllTime = r.revenueAllTime == null ? "0" : r.revenueAllTime.toPlainString();
+
             sb.append(r.eventId).append(",");
             // CSV güvenliği: başlıkta virgül olursa tırnakla
-            sb.append("\"").append(r.title == null ? "" : r.title.replace("\"","\"\"")).append("\",");
+            sb.append("\"").append(r.title == null ? "" : r.title.replace("\"", "\"\"")).append("\",");
             sb.append(r.totalSeats).append(",");
             sb.append(r.soldInRange).append(",");
             sb.append(r.soldAllTime).append(",");
@@ -148,7 +161,26 @@ public class ReportService {
             sb.append(r.revenueAllTime == null ? "0" : r.revenueAllTime).append("\n");
         }
 
-        return sb.toString().getBytes(StandardCharsets.UTF_8);
+        // 4) UTF-8 BOM ile byte dizisi hazırla (Excel Türkçe karakterleri sorunsuz görür)
+        byte[] bom = new byte[]{(byte) 0xEF, (byte) 0xBB, (byte) 0xBF};
+        byte[] body = sb.toString().getBytes(StandardCharsets.UTF_8);
+
+        ByteArrayOutputStream out = new ByteArrayOutputStream(bom.length + body.length);
+        out.write(bom, 0, bom.length);
+        out.write(body, 0, body.length);
+        return out.toByteArray();
+
+    }
+    /** İndirilecek dosya adını tarih aralığına göre üret (controller kullanacak) */
+    public String fullCsvFilename(LocalDateTime from, LocalDateTime to) {
+        DateTimeFormatter F = DateTimeFormatter.ofPattern("yyyyMMdd-HHmm");
+        if (from != null && to != null) {
+            // from > to takasını full(...) zaten yapıyor; burada isim için min/max alabiliriz
+            LocalDateTime a = from.isAfter(to) ? to : from;
+            LocalDateTime b = from.isAfter(to) ? from : to;
+            return "full-sales-report_" + F.format(a) + "_to_" + F.format(b) + ".csv";
+        }
+        return "full-sales-report.csv";
     }
 }
 

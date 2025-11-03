@@ -94,9 +94,11 @@ public class ReportController {
     ) {
         byte[] csv = reportService.fullCsv(from, to);
 
+        String filename = reportService.fullCsvFilename(from, to);
+
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(new MediaType("text", "csv"));
-        headers.set(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"full-sales-report.csv\"");
+        headers.set(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + filename + "\"");
         headers.set(HttpHeaders.CACHE_CONTROL, "no-cache, no-store, must-revalidate");
 
         return new ResponseEntity<>(csv, headers, HttpStatus.OK);

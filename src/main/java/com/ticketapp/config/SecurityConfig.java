@@ -15,7 +15,7 @@ import org.springframework.security.web.AuthenticationEntryPoint;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.access.AccessDeniedHandler;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
-@EnableMethodSecurity
+@EnableMethodSecurity(prePostEnabled = true) // method-level security
 @Configuration
 @EnableWebSecurity
 public class SecurityConfig {

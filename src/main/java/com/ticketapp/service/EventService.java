@@ -3,6 +3,7 @@ package com.ticketapp.service;
 import com.ticketapp.dto.EventRequest;
 import com.ticketapp.dto.SalesReport;
 import com.ticketapp.entity.Event;
+import com.ticketapp.exception.ResourceNotFoundException;
 import com.ticketapp.repository.EventRepository;
 import com.ticketapp.repository.TicketRepository;
 import org.springframework.data.domain.Page;
@@ -42,7 +43,8 @@ public class EventService {
         return repo.findAll();
     }
     public Event update(Long id, EventRequest r) {
-        Event e = repo.findById(id).orElseThrow(() -> new RuntimeException("Event bulunamadı"));
+        Event e = repo.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Etkinlik bulunamadı"));
         e.setTitle(r.getTitle());
         e.setCity(r.getCity());
         e.setType(r.getType());

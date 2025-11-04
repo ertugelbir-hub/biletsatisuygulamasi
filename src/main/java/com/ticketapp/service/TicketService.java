@@ -3,6 +3,7 @@ package com.ticketapp.service;
 import com.ticketapp.dto.PurchaseRequest;
 import com.ticketapp.entity.Event;
 import com.ticketapp.entity.Ticket;
+import com.ticketapp.exception.ResourceNotFoundException;
 import com.ticketapp.repository.EventRepository;
 import com.ticketapp.repository.TicketRepository;
 import com.ticketapp.repository.UserRepository;
@@ -37,13 +38,13 @@ public class TicketService {
 
         // (İsteğe bağlı) kullanıcıyı doğrula
         userRepo.findByUsername(username)
-                .orElseThrow(() -> new RuntimeException("Kullanıcı bulunamadı"));
+                .orElseThrow(() -> new ResourceNotFoundException("Kullanıcı bulunamadı"));
 
         for (int attempt = 1; attempt <= MAX_RETRY; attempt++) {
             try {
                 // 1) Event oku
                 Event e = eventRepo.findById(r.eventId)
-                        .orElseThrow(() -> new RuntimeException("Etkinlik bulunamadı"));
+                        .orElseThrow(() -> new ResourceNotFoundException("Etkinlik bulunamadı"));
 
                 // 2) Kalan koltuk = totalSeats - sold
                 int sold = ticketRepo.sumQuantityByEventId(e.getId());
@@ -87,7 +88,7 @@ public class TicketService {
     @Transactional
     public void cancel(Long ticketId, String username) {
         Ticket t = ticketRepo.findById(ticketId)
-                .orElseThrow(() -> new RuntimeException("Bilet bulunamadı"));
+                .orElseThrow(() -> new ResourceNotFoundException("Bilet bulunamadı"));
         boolean owner = t.getUsername().equalsIgnoreCase(username);
 
         // Kullanıcının yetkilerinde ROLE_ADMIN var mı?

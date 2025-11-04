@@ -13,6 +13,7 @@ import com.ticketapp.dto.FullSalesReport;
 import com.ticketapp.dto.SalesReport;
 import com.ticketapp.dto.SalesSummaryItem;
 import com.ticketapp.entity.Event;
+import com.ticketapp.exception.ResourceNotFoundException;
 import com.ticketapp.repository.EventRepository;
 import com.ticketapp.repository.TicketRepository;
 import org.springframework.data.domain.*;
@@ -73,7 +74,7 @@ public class ReportService {
     // C) All time
     public SalesReport allTimeSales(Long eventId) {
         var e = eventRepo.findById(eventId)
-                .orElseThrow(() -> new RuntimeException("Etkinlik bulunamadı"));
+                .orElseThrow(() -> new ResourceNotFoundException("Etkinlik bulunamadı"));
 
         int soldAllTime = ticketRepo.sumQuantityByEventId(e.getId());
         int remaining   = Math.max(0, e.getTotalSeats() - soldAllTime);

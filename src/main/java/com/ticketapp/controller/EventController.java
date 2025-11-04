@@ -4,6 +4,11 @@ import com.ticketapp.dto.EventRequest;
 import com.ticketapp.dto.SalesReport;
 import com.ticketapp.entity.Event;
 import com.ticketapp.service.EventService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.ExampleObject;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import jakarta.validation.Valid;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -14,8 +19,11 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
+
 import java.time.LocalDateTime;
 import java.util.List;
+
+import static com.ticketapp.config.SwaggerExamples.*;
 
 @RestController
 @RequestMapping("/api/events")
@@ -28,12 +36,35 @@ public class EventController {
         this.service = service;
     }
     // CREATE (body doğrulaması)
+    @Operation(summary = "Event oluştur (ADMIN)")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Oluşturuldu",
+                    content = @Content(mediaType = "application/json",
+                            examples = @ExampleObject(name="Event", value = EVENT_RES)
+                    )
+            ),
+            @ApiResponse(responseCode = "400", description = "Validasyon",
+                    content = @Content(mediaType = "application/json",
+                            examples = @ExampleObject(value = ERROR_RES)
+                    )
+            )
+    })
+    @io.swagger.v3.oas.annotations.parameters.RequestBody(
+            required = true,
+            content = @Content(mediaType = "application/json",
+                    examples = @ExampleObject(name="Create body", value = EVENT_CREATE_REQ)
+            )
+    )
     @PreAuthorize("hasRole('ADMIN')")
     @PostMapping //admin
     public ResponseEntity<Event> create(@RequestBody @Valid EventRequest req) {
         return ResponseEntity.ok(service.create(req));
     }
-
+    @Operation(summary = "Event listesini getir (herkese açık)")
+    @ApiResponse(responseCode = "200", description = "Başarılı",
+            content = @Content(mediaType = "application/json",
+                    examples = @ExampleObject(name="List", value = "[" + EVENT_RES + "]")
+            ))
     @GetMapping
     public ResponseEntity<List<Event>> list() { return ResponseEntity.ok(service.list());
     }

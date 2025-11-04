@@ -5,6 +5,11 @@ import com.ticketapp.dto.RegisterRequest;
 import com.ticketapp.entity.User;
 import com.ticketapp.security.JwtService;
 import com.ticketapp.service.UserService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.ExampleObject;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -14,6 +19,9 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.Map;
+
+import static com.ticketapp.config.SwaggerExamples.ERROR_RES;
+import static com.ticketapp.config.SwaggerExamples.LOGIN_RES;
 //Spring’de @Valid, kullanıcıdan gelen veriyi (request body) doğrulamak için kullanılır.
 //Yani sen @NotBlank, @Positive, @NotNull gibi kuralları DTO’ya yazarsın,
 //@Valid ise o kuralları aktif hale getirir.
@@ -56,6 +64,19 @@ public class AuthController {
         return ResponseEntity.ok("Kayıt başarılı");
     }
 
+    @Operation(summary = "Giriş yap", description = "Kullanıcı adı ve şifre ile JWT token al.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Başarılı",
+                    content = @Content(mediaType = "application/json",
+                            examples = @ExampleObject(name = "Login response", value = LOGIN_RES)
+                    )
+            ),
+            @ApiResponse(responseCode = "401", description = "Yetkisiz",
+                    content = @Content(mediaType = "application/json",
+                            examples = @ExampleObject(value = ERROR_RES)
+                    )
+            )
+    })
     @PostMapping("/login")
     public ResponseEntity<?> login(@RequestBody @Valid LoginRequest req) {
         if (req.getUsername() == null || req.getUsername().isBlank()

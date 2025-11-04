@@ -11,6 +11,7 @@ import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.ExampleObject;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import jakarta.validation.constraints.NotNull;
 import org.springframework.data.domain.Page;
 import org.springframework.format.annotation.DateTimeFormat;
@@ -30,6 +31,11 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/reports/sales")
 @PreAuthorize("hasRole('ADMIN')")
+@ApiResponses({
+        @ApiResponse(responseCode = "200", description = "Başarılı"),
+        @ApiResponse(responseCode = "401", description = "Kimlik doğrulama gerekli"),
+        @ApiResponse(responseCode = "403", description = "Yetkisiz (ADMIN rolü gerekli)")
+})
 public class ReportController {
     private final ReportService reportService;
     public ReportController( ReportService reportService) { this.reportService = reportService;}
@@ -113,7 +119,7 @@ public class ReportController {
     }
     @Operation(
             summary = "Birleşik raporu CSV indir",
-            description = "Full raporu (tarih aralığı + all-time) CSV dosyası olarak döndürür."
+            description = "UTF-8 BOM içerir, Excel uyumludur. Sütunlar: Etkinlik ID, Etkinlik Adı, Toplam Koltuk, Aralık Satışı, Tüm Zaman, Kalan, Fiyat, Aralık Geliri, Toplam Gelir."
     )
     @ApiResponse(responseCode = "200", description = "Başarılı")
     @GetMapping("/api/reports/sales/full.csv")
@@ -191,7 +197,7 @@ public class ReportController {
     }
     @Operation(
             summary = "Birleşik raporu PDF indir",
-            description = "Full raporu (tarih aralığı + all-time) PDF olarak döndürür."
+            description = "A4 yatay tablo; Türkçe karakter desteğiyle oluşturulur."
     )
     @ApiResponse(responseCode = "200", description = "Başarılı")
     @GetMapping("/api/reports/sales/full.pdf")

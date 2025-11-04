@@ -1,14 +1,17 @@
-package com.ticketapp.config;
+package com.ticketapp.exception;
 
 import jakarta.validation.ConstraintViolationException;
 import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 
 import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
@@ -16,11 +19,10 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
-
 @RestControllerAdvice
 public class GlobalExceptionHandler {
     // 1) @Valid (DTO/body) ihlalleri
-    // @Valid body hataları
+    // @Valid body hataları 400
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<Map<String, Object>> onValidation(MethodArgumentNotValidException ex) {
         Map<String, Object> body = new LinkedHashMap<>();
@@ -56,7 +58,7 @@ public class GlobalExceptionHandler {
     }
 
 
-    // 2) @Validated + @RequestParam/@PathVariable ihlalleri
+    // 2) @Validated + @RequestParam/@PathVariable ihlalleri 400
     @ExceptionHandler(ConstraintViolationException.class)
     public ResponseEntity<Map<String, Object>> onConstraint(ConstraintViolationException ex) {
         Map<String, Object> body = new LinkedHashMap<>();
@@ -73,16 +75,7 @@ public class GlobalExceptionHandler {
         body.put("details", details);
         return ResponseEntity.badRequest().body(body);
     }
-
-    // 3) Uygulama içi fırlattığın hatalar (ör. throw new RuntimeException(...))
-    @ExceptionHandler(RuntimeException.class)
-    public ResponseEntity<Map<String, Object>> onRuntime(RuntimeException ex) {
-        Map<String, Object> body = new LinkedHashMap<>();
-        body.put("error", "runtime");
-        body.put("message", ex.getMessage());
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(body);
-
-    }
+    // 3) JSON parse / tarih formatı → 400
     @ExceptionHandler(HttpMessageNotReadableException.class)
     public ResponseEntity<Map<String, Object>> onJsonParse(HttpMessageNotReadableException ex) {
         String msg = ex.getMostSpecificCause() != null
@@ -120,6 +113,37 @@ public class GlobalExceptionHandler {
         body.put("details", details);
         return ResponseEntity.badRequest().body(body);
     }
+    // 4) Parametre tipi uyuşmazlığı → 400
+    @ExceptionHandler(MethodArgumentTypeMismatchException.class)
+    public ResponseEntity<Map<String, Object>> onTypeMismatch(MethodArgumentTypeMismatchException ex) {
+        Map<String, Object> body = new LinkedHashMap<>();
+        body.put("error", "validation");
+        body.put("details", List.of(Map.of(
+                "field", ex.getName(),
+                "message", "Parametre tipi hatalı: " + (ex.getRequiredType() != null ? ex.getRequiredType().getSimpleName() : "beklenen tip")
+        )));
+        return ResponseEntity.badRequest().body(body);
+    }
+    // 5) Zorunlu parametre eksik → 400
+    @ExceptionHandler(MissingServletRequestParameterException.class)
+    public ResponseEntity<Map<String, Object>> onMissingParam(MissingServletRequestParameterException ex) {
+        Map<String, Object> body = new LinkedHashMap<>();
+        body.put("error", "validation");
+        body.put("details", List.of(Map.of(
+                "field", ex.getParameterName(),
+                "message", "Zorunlu parametre eksik"
+        )));
+        return ResponseEntity.badRequest().body(body);
+    }
+    // 6) 404 – Domain yok
+    @ExceptionHandler(ResourceNotFoundException.class)
+    public ResponseEntity<Map<String, Object>> onNotFound(ResourceNotFoundException ex) {
+        Map<String, Object> body = new LinkedHashMap<>();
+        body.put("error", "not_found");
+        body.put("message", ex.getMessage());
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(body);
+    }
+    // 7) 409 – Optimistic lock
     @ExceptionHandler(OptimisticLockingFailureException.class)
     public ResponseEntity<Map<String, Object>> onOptLock(OptimisticLockingFailureException ex) {
         Map<String, Object> body = new LinkedHashMap<>();
@@ -127,7 +151,37 @@ public class GlobalExceptionHandler {
         body.put("message", "İşlem çakıştı, lütfen tekrar deneyin.");
         return ResponseEntity.status(HttpStatus.CONFLICT).body(body); // 409
     }
-
-
+    // 8) 409 – Çakışma (örn. kullanıcı adı kullanılıyor)
+    @ExceptionHandler(DuplicateResourceException.class)
+    public ResponseEntity<Map<String, Object>> onDuplicate(DuplicateResourceException ex) {
+        Map<String, Object> body = new LinkedHashMap<>();
+        body.put("error", "conflict");
+        body.put("message", ex.getMessage()); // örn: "Kullanıcı adı zaten kullanılıyor"
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(body); // 409
+    }
+    // 9) 403 – Yetki yok (ADMIN gerekli)
+    @ExceptionHandler(AccessDeniedException.class)
+    public ResponseEntity<Map<String, Object>> onAccessDenied(AccessDeniedException ex) {
+        Map<String, Object> body = new LinkedHashMap<>();
+        body.put("error", "forbidden");
+        body.put("message", "Bu işlem için yetkiniz yok (ADMIN rolü gerekli).");
+        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(body); // 403
+    }
+    // 10) Genel (iş kuralı vb.) → 400
+    @ExceptionHandler(RuntimeException.class)
+    public ResponseEntity<Map<String, Object>> onRuntime(RuntimeException ex) {
+        Map<String, Object> body = new LinkedHashMap<>();
+        body.put("error", "runtime");
+        body.put("message", ex.getMessage());
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(body);
+    }
+    // 11) Beklenmeyen → 500
+    @ExceptionHandler(Exception.class)
+    public ResponseEntity<Map<String, Object>> onGeneric(Exception ex) {
+        Map<String, Object> body = new LinkedHashMap<>();
+        body.put("error", "error");
+        body.put("message", "Beklenmeyen bir hata oluştu");
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(body);
+    }
 }
 

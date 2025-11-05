@@ -96,22 +96,30 @@ public class EventController {
         return ResponseEntity.ok(result);
 
     }
+
+    @Operation(
+            summary = "Event arama/sıralama/sayfalama",
+            description = "Şehre, türe, başlığa ve tarih aralığına göre filtreler. "
+                    + "page/size/sort/dir ile sayfalama ve sıralama yapar."
+    )
+    @ApiResponse(responseCode = "200", description = "Başarılı")
     @GetMapping("/api/events/search")
-    public ResponseEntity<Page<Event>> search(
+    public Page<Event> search(
             @RequestParam(required = false) String city,
             @RequestParam(required = false) String type,
-            @RequestParam(required = false) String title,
-            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime from,
-            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime to,
-            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(required = false) String q,
+            @RequestParam(required = false)
+            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime from,
+            @RequestParam(required = false)
+            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime to,
+            @RequestParam(defaultValue = "0")  int page,
             @RequestParam(defaultValue = "10") int size,
-            @RequestParam(defaultValue = "dateTime,asc") String sort
+            @RequestParam(defaultValue = "dateTime") String sort,
+            @RequestParam(defaultValue = "asc") String dir
     ) {
-        String[] s = sort.split(",", 2);
-        Sort.Direction dir = (s.length > 1 && "desc".equalsIgnoreCase(s[1])) ? Sort.Direction.DESC : Sort.Direction.ASC;
-        Pageable pageable = PageRequest.of(page, size, Sort.by(dir, s[0]));
-        Page<Event> result = service.search(city, type, title, from, to, pageable);
-        return ResponseEntity.ok(result);
+        Sort.Direction direction = "desc".equalsIgnoreCase(dir) ? Sort.Direction.DESC : Sort.Direction.ASC;
+        Pageable pageable = PageRequest.of(page, size, Sort.by(direction, sort));
+        return service.search(city, type, q, from, to, pageable);
     }
 
 

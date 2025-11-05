@@ -61,5 +61,7 @@ public final class SwaggerExamples {
             "  \"error\": \"validation\",\n" +
             "  \"details\": [ { \"field\": \"dateTime\", \"message\": \"Tarih formatı yyyy-MM-dd'T'HH:mm olmalı\" } ]\n" +
             "}";
+    public static final String EVENTS_SEARCH_EXAMPLE_QUERY =
+            "city=Ankara&type=Concert&q=Test&from=2025-12-01T00:00&to=2025-12-31T23:59&page=0&size=5&sort=dateTime&dir=asc";
 }
 //Bu sınıfı kullanmak için anotasyonlarda value = SwaggerExamples.LOGIN_REQ gibi yazacağız.

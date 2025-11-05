@@ -11,8 +11,9 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
-import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.math.BigDecimal;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -89,14 +90,10 @@ public class EventService {
         return repo.findAll(pageable);
     }
 
-    public Page<Event> search(String city, String type, String title,
-                              LocalDateTime from, LocalDateTime to, Pageable pageable) {
-        return repo.search(
-                (city == null || city.isBlank()) ? null : city,
-                (type == null || type.isBlank()) ? null : type,
-                (title == null || title.isBlank()) ? null : title,
-                from, to, pageable
-        );
+    public Page<Event> search(String city, String type, String q,
+                              LocalDateTime from, LocalDateTime to,
+                              Pageable pageable) {
+        return repo.search(city, type, q, from, to, pageable);
     }
     public List<SalesReport> salesSummary(LocalDateTime from, LocalDateTime to) {
         // 1) Aralıktaki etkinlikleri çek

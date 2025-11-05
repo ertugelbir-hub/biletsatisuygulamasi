@@ -28,6 +28,8 @@ import org.springframework.web.bind.annotation.RestController;
 import java.time.LocalDateTime;
 import java.util.List;
 
+import static com.ticketapp.config.SwaggerExamples.*;
+
 @RestController
 @RequestMapping("/api/reports/sales")
 @PreAuthorize("hasRole('ADMIN')")
@@ -39,13 +41,33 @@ import java.util.List;
 public class ReportController {
     private final ReportService reportService;
     public ReportController( ReportService reportService) { this.reportService = reportService;}
-    @Operation(
-            summary = "Satın alma tarihine göre satış özeti",
-            description = "Verilen [from, to] aralığında satın alma tarihine göre sold/remaining/revenue bilgilerini döner."
-    )
 
     // A) Satın alma tarihine göre özet
-    @ApiResponse(responseCode = "200", description = "Başarılı")
+    @Operation(
+            summary = "Satın alma tarihine göre satış özeti",
+            parameters = {
+                    @Parameter(name = "from", example = DATE_FROM),
+                    @Parameter(name = "to",   example = DATE_TO)
+            },
+            responses = {
+                    @ApiResponse(responseCode = "200", description = "Başarılı",
+                            content = @Content(
+                                    mediaType = "application/json",
+                                    examples = @ExampleObject(name = "summary-by-purchase", value = REPORT_SUMMARY_BY_PURCHASE)
+                            )
+                    ),
+                    @ApiResponse(responseCode = "400", description = "Validation",
+                            content = @Content(mediaType = "application/json",
+                                    examples = @ExampleObject(value = ERROR_RES)
+                            )
+                    ),
+                    @ApiResponse(responseCode = "403", description = "Forbidden",
+                            content = @Content(mediaType = "application/json",
+                                    examples = @ExampleObject(value = ERROR_FORBIDDEN)
+                            )
+                    )
+            }
+    )
     @GetMapping("/summary-by-purchase")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<List<SalesSummaryItem>> summaryByPurchase(
@@ -53,12 +75,32 @@ public class ReportController {
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime to) {
         return ResponseEntity.ok(reportService.summaryByPurchase(from, to));
     }
-    @Operation(
-            summary = "Etkinlik tarihine göre satış özeti",
-            description = "Verilen [from, to] aralığında tüm etkinlikler için sold/remaining/revenue bilgilerini döner."
-    )
-    // B) Etkinlik tarihine göre özet
-    @ApiResponse(responseCode = "200", description = "Başarılı")
+       // B) Etkinlik tarihine göre özet
+       @Operation(
+               summary = "Etkinlik tarihine göre satış özeti",
+               parameters = {
+                       @Parameter(name = "from", example = DATE_FROM),
+                       @Parameter(name = "to",   example = DATE_TO)
+               },
+               responses = {
+                       @ApiResponse(responseCode = "200", description = "Başarılı",
+                               content = @Content(
+                                       mediaType = "application/json",
+                                       examples = @ExampleObject(name = "summary-by-event", value = REPORT_SUMMARY_BY_EVENT)
+                               )
+                       ),
+                       @ApiResponse(responseCode = "400", description = "Validation",
+                               content = @Content(mediaType = "application/json",
+                                       examples = @ExampleObject(value = ERROR_RES)
+                               )
+                       ),
+                       @ApiResponse(responseCode = "403", description = "Forbidden",
+                               content = @Content(mediaType = "application/json",
+                                       examples = @ExampleObject(value = ERROR_FORBIDDEN)
+                               )
+                       )
+               }
+       )
     @GetMapping("/summary-by-event")
     public ResponseEntity<List<SalesSummaryItem>> summaryByEvent(
             @RequestParam @NotNull
@@ -81,29 +123,26 @@ public class ReportController {
     }
     @Operation(
             summary = "Birleşik rapor: tarih aralığı + all-time",
-            description = "Her etkinlik için hem [from,to] aralığındaki satışı hem de tüm zaman satışı ve gelirlerini birlikte döner."
-    )
+            description = "Her etkinlik için hem [from,to] aralığındaki satışı hem de tüm zaman satışı ve gelirlerini birlikte döner.",
+        parameters = {
+        @Parameter(name = "from", description = "Başlangıç", example = DATE_FROM),
+        @Parameter(name = "to",   description = "Bitiş",      example = DATE_TO)
+    }, responses = {
     @ApiResponse(
             responseCode = "200",
             description = "Başarılı",
             content = @Content(
                     mediaType = "application/json",
-                    array = @ArraySchema(schema = @Schema(implementation = FullSalesReport.class)),
-                    examples = @ExampleObject(
-                            name = "Örnek Liste",
-                            value = "[{\n" +
-                                    "  \"eventId\": 1,\n" +
-                                    "  \"title\": \"Swagger Test Konseri\",\n" +
-                                    "  \"totalSeats\": 10,\n" +
-                                    "  \"soldInRange\": 0,\n" +
-                                    "  \"soldAllTime\": 3,\n" +
-                                    "  \"remaining\": 7,\n" +
-                                    "  \"price\": 150,\n" +
-                                    "  \"revenueRange\": 0,\n" +
-                                    "  \"revenueAllTime\": 450\n" +
-                                    "}]"
+                    array = @ArraySchema(schema = @Schema(implementation  = java.util.List.class)),
+                    examples = @ExampleObject(name = "report-full", value = REPORT_FULL_LIST)
+                    )
+            ),
+            @ApiResponse(responseCode = "403", description = "Forbidden",
+                    content = @Content(mediaType = "application/json",
+                            examples = @ExampleObject(value = ERROR_FORBIDDEN)
                     )
             )
+    }
     )
     @GetMapping("/full")
     @PreAuthorize("hasRole('ADMIN')")
@@ -118,10 +157,27 @@ public class ReportController {
         return ResponseEntity.ok(reportService.full(from, to));
     }
     @Operation(
-            summary = "Birleşik raporu CSV indir",
-            description = "UTF-8 BOM içerir, Excel uyumludur. Sütunlar: Etkinlik ID, Etkinlik Adı, Toplam Koltuk, Aralık Satışı, Tüm Zaman, Kalan, Fiyat, Aralık Geliri, Toplam Gelir."
+            summary = "Birleşik rapor CSV indir",
+            parameters = {
+                    @Parameter(name = "from", example = DATE_FROM),
+                    @Parameter(name = "to",   example = DATE_TO)
+            },
+            responses = {
+                    @ApiResponse(responseCode = "200", description = "CSV",
+                            content = @Content(
+                                    mediaType = "text/csv",
+                                    schema = @Schema(type = "string", format = "binary"),
+                                    examples = @ExampleObject(name = "csv-preview", value = REPORT_FULL_CSV)
+                            )
+                    ),
+                    @ApiResponse(responseCode = "403", description = "Forbidden",
+                            content = @Content(mediaType = "application/json",
+                                    examples = @ExampleObject(value = ERROR_FORBIDDEN)
+                            )
+                    )
+            }
     )
-    @ApiResponse(responseCode = "200", description = "Başarılı")
+
     @GetMapping("/full.csv")
     public ResponseEntity<byte[]> fullCsv(
             @RequestParam(required = false)
@@ -144,42 +200,30 @@ public class ReportController {
 
     @Operation(
             summary = "Birleşik rapor (sayfalı)",
-            description = "Full raporu sayfalı döndürür. Varsayılan: page=0, size=10, sort=title, dir=asc"
-    )
-    @ApiResponse(
-            responseCode = "200",
-            description = "Başarılı",
-            content = @Content(
-                    mediaType = "application/json",
-                    examples = @ExampleObject(
-                            name = "Page Örneği",
-                            value = "{\n" +
-                                    "  \"content\": [\n" +
-                                    "    {\n" +
-                                    "      \"eventId\": 1,\n" +
-                                    "      \"title\": \"Swagger Test Konseri\",\n" +
-                                    "      \"totalSeats\": 10,\n" +
-                                    "      \"soldInRange\": 0,\n" +
-                                    "      \"soldAllTime\": 3,\n" +
-                                    "      \"remaining\": 7,\n" +
-                                    "      \"price\": 150,\n" +
-                                    "      \"revenueRange\": 0,\n" +
-                                    "      \"revenueAllTime\": 450\n" +
-                                    "    }\n" +
-                                    "  ],\n" +
-                                    "  \"pageable\": {\"pageNumber\": 0, \"pageSize\": 10, \"offset\": 0, \"paged\": true},\n" +
-                                    "  \"last\": true,\n" +
-                                    "  \"totalElements\": 1,\n" +
-                                    "  \"totalPages\": 1,\n" +
-                                    "  \"size\": 10,\n" +
-                                    "  \"number\": 0,\n" +
-                                    "  \"first\": true,\n" +
-                                    "  \"numberOfElements\": 1,\n" +
-                                    "  \"empty\": false\n" +
-                                    "}"
+            description = "Varsayılan: page=0, size=10, sort=title, dir=asc",
+            parameters = {
+                    @Parameter(name = "from", example = DATE_FROM),
+                    @Parameter(name = "to",   example = DATE_TO),
+                    @Parameter(name = "page", example = "0"),
+                    @Parameter(name = "size", example = "10"),
+                    @Parameter(name = "sort", example = "title"),
+                    @Parameter(name = "dir",  example = "asc")
+            },
+            responses = {
+                    @ApiResponse(responseCode = "200", description = "Başarılı",
+                            content = @Content(
+                                    mediaType = "application/json",
+                                    examples = @ExampleObject(name = "full-page", value = REPORT_FULL_PAGE)
+                            )
+                    ),
+                    @ApiResponse(responseCode = "403", description = "Forbidden",
+                            content = @Content(mediaType = "application/json",
+                                    examples = @ExampleObject(value = ERROR_FORBIDDEN)
+                            )
                     )
-            )
+            }
     )
+
     @GetMapping("/full/page")
     public ResponseEntity<Page<FullSalesReport>> fullPaged(
             @Parameter(example = "2025-12-01T00:00")
@@ -196,10 +240,26 @@ public class ReportController {
         return ResponseEntity.ok(reportService.fullPaged(from, to, page, size, sort, dir));
     }
     @Operation(
-            summary = "Birleşik raporu PDF indir",
-            description = "A4 yatay tablo; Türkçe karakter desteğiyle oluşturulur."
+            summary = "Birleşik rapor PDF indir",
+            parameters = {
+                    @Parameter(name = "from", example = DATE_FROM),
+                    @Parameter(name = "to",   example = DATE_TO)
+            },
+            responses = {
+                    @ApiResponse(responseCode = "200", description = "PDF",
+                            content = @Content(
+                                    mediaType = "application/pdf",
+                                    schema = @Schema(type = "string", format = "binary"),
+                                    examples = @ExampleObject(name = "pdf-info", value = REPORT_FULL_PDF)
+                            )
+                    ),
+                    @ApiResponse(responseCode = "403", description = "Forbidden",
+                            content = @Content(mediaType = "application/json",
+                                    examples = @ExampleObject(value = ERROR_FORBIDDEN)
+                            )
+                    )
+            }
     )
-    @ApiResponse(responseCode = "200", description = "Başarılı")
     @GetMapping("/full.pdf")
     public ResponseEntity<byte[]> fullPdf(
             @Parameter(example = "2025-12-01T00:00")

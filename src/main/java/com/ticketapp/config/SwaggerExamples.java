@@ -2,6 +2,11 @@ package com.ticketapp.config;
 
 public final class SwaggerExamples {
     private SwaggerExamples() {}
+    // Ortak parametre örnekleri
+    public static final String DATE_FROM = "2025-12-01T00:00";
+    public static final String DATE_TO   = "2025-12-31T23:59";
+    // ---- Response örnekleri ----
+
 
     // Auth
     public static final String LOGIN_REQ = "{\n" +
@@ -63,5 +68,58 @@ public final class SwaggerExamples {
             "}";
     public static final String EVENTS_SEARCH_EXAMPLE_QUERY =
             "city=Ankara&type=Concert&q=Test&from=2025-12-01T00:00&to=2025-12-31T23:59&page=0&size=5&sort=dateTime&dir=asc";
+    // --- RAPOR: Özet endpoint’leri için örnekler ---
+    public static final String REPORT_SUMMARY_BY_PURCHASE = """
+[
+  {
+    "eventId": 1,
+    "title": "Swagger Test Konseri",
+    "totalSeats": 10,
+    "soldInRange": 3,
+    "remaining": 7,
+    "price": 150.00,
+    "revenue": 450.00
+  }
+]
+""";
+
+    public static final String REPORT_SUMMARY_BY_EVENT = """
+[
+  {
+    "eventId": 2,
+    "title": "Swagger Test Konseri 2",
+    "totalSeats": 20,
+    "soldInRange": 5,
+    "remaining": 15,
+    "price": 200.00,
+    "revenue": 1000.00
+  }
+]
+""";
+
+    // --- CSV örneği (text/csv) ---
+    public static final String REPORT_FULL_CSV = """
+eventId,title,totalSeats,soldInRange,soldAllTime,remaining,price,revenueRange,revenueAllTime
+1,"Swagger Test Konseri",10,0,3,7,150.00,0.00,450.00
+""";
+
+    // --- Hata örnekleri (Swagger'da 403/404/400 göstermek için) ---
+    public static final String ERROR_FORBIDDEN = """
+{ "error": "forbidden", "message": "Bu işlem için yetkiniz yok (ADMIN rolü gerekli)." }
+""";
+
+    public static final String ERROR_NOT_FOUND = """
+{ "error": "not_found", "message": "Etkinlik bulunamadı." }
+""";
+
+// istersen mevcut ERROR_RES'ini de kullanmaya devam edebilirsin (validation için)
+// --- PDF örneği (application/pdf) ---
+public static final String REPORT_FULL_PDF = """
+Bu endpoint PDF dosyası döndürür (application/pdf).
+İçerik tablo biçimindedir, tarih aralığı ve all-time satış özetlerini içerir.
+Örnek sütunlar:
+ID | Etkinlik Adı | Toplam | Aralık Satış | Tüm Zaman | Kalan | Fiyat | Aralık Geliri | Toplam Gelir
+""";
+
 }
 //Bu sınıfı kullanmak için anotasyonlarda value = SwaggerExamples.LOGIN_REQ gibi yazacağız.

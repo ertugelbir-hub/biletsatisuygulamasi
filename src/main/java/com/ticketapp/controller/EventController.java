@@ -103,7 +103,7 @@ public class EventController {
                     + "page/size/sort/dir ile sayfalama ve sıralama yapar."
     )
     @ApiResponse(responseCode = "200", description = "Başarılı")
-    @GetMapping("/api/events/search")
+    @GetMapping("/search")
     public Page<Event> search(
             @RequestParam(required = false) String city,
             @RequestParam(required = false) String type,

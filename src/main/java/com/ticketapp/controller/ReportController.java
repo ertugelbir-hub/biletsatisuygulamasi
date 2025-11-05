@@ -74,7 +74,7 @@ public class ReportController {
     )
     // GET /api/reports/sales/alltime?eventId=1
     @ApiResponse(responseCode = "200", description = "Başarılı")
-    @GetMapping("/sales/alltime")
+    @GetMapping("/alltime")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<SalesReport> allTime(@RequestParam Long eventId) {
         return ResponseEntity.ok(reportService.allTimeSales(eventId));
@@ -105,7 +105,7 @@ public class ReportController {
                     )
             )
     )
-    @GetMapping("/sales/full")
+    @GetMapping("/full")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<List<FullSalesReport>> full(
             @Parameter(example = "2025-12-01T00:00")
@@ -122,7 +122,7 @@ public class ReportController {
             description = "UTF-8 BOM içerir, Excel uyumludur. Sütunlar: Etkinlik ID, Etkinlik Adı, Toplam Koltuk, Aralık Satışı, Tüm Zaman, Kalan, Fiyat, Aralık Geliri, Toplam Gelir."
     )
     @ApiResponse(responseCode = "200", description = "Başarılı")
-    @GetMapping("/api/reports/sales/full.csv")
+    @GetMapping("/full.csv")
     public ResponseEntity<byte[]> fullCsv(
             @RequestParam(required = false)
             @DateTimeFormat(pattern = "yyyy-MM-dd'T'HH:mm") LocalDateTime from,
@@ -180,7 +180,7 @@ public class ReportController {
                     )
             )
     )
-    @GetMapping("/api/reports/sales/full/page")
+    @GetMapping("/full/page")
     public ResponseEntity<Page<FullSalesReport>> fullPaged(
             @Parameter(example = "2025-12-01T00:00")
             @RequestParam(required = false)
@@ -200,7 +200,7 @@ public class ReportController {
             description = "A4 yatay tablo; Türkçe karakter desteğiyle oluşturulur."
     )
     @ApiResponse(responseCode = "200", description = "Başarılı")
-    @GetMapping("/api/reports/sales/full.pdf")
+    @GetMapping("/full.pdf")
     public ResponseEntity<byte[]> fullPdf(
             @Parameter(example = "2025-12-01T00:00")
             @RequestParam(required = false)

@@ -1,14 +1,8 @@
 // src/main/java/com/ticketapp/service/ReportService.java
 package com.ticketapp.service;
 
-import com.lowagie.text.Document;
-import com.lowagie.text.Font;
-import com.lowagie.text.PageSize;
-import com.lowagie.text.Paragraph;
-import com.lowagie.text.pdf.BaseFont;
-import com.lowagie.text.pdf.PdfPCell;
-import com.lowagie.text.pdf.PdfPTable;
-import com.lowagie.text.pdf.PdfWriter;
+import com.lowagie.text.*;
+import com.lowagie.text.pdf.*;
 import com.ticketapp.dto.FullSalesReport;
 import com.ticketapp.dto.SalesReport;
 import com.ticketapp.dto.SalesSummaryItem;
@@ -22,14 +16,21 @@ import org.springframework.stereotype.Service;
 import java.io.ByteArrayOutputStream;
 import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
+import java.text.DecimalFormat;
+import java.text.DecimalFormatSymbols;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 
 @Service
 public class ReportService {
-//Yeni bir servis oluşturuyoruz: tüm event’leri dolaş, her biri için sold/remaining/revenue hesapla.
+    // TL formatlayıcı ( , ve . yerleri TR'ye uygun )
+    private static final DecimalFormatSymbols TR_SYM = new DecimalFormatSymbols(new Locale("tr", "TR"));
+    private static final DecimalFormat TL = new DecimalFormat("#,##0.00", TR_SYM);
+
+    //Yeni bir servis oluşturuyoruz: tüm event’leri dolaş, her biri için sold/remaining/revenue hesapla.
     private final EventRepository eventRepo;
     private final TicketRepository ticketRepo;
 
@@ -44,9 +45,9 @@ public class ReportService {
         return eventRepo.findAll().stream().map(e -> {
             int soldInRange = ticketRepo.sumQuantityByEventIdBetweenPurchase(e.getId(), from, to);
             int allTimeSold = ticketRepo.sumQuantityByEventId(e.getId());
-            int remaining   = Math.max(0, e.getTotalSeats() - allTimeSold);
+            int remaining = Math.max(0, e.getTotalSeats() - allTimeSold);
 
-            var price   = e.getPrice() == null ? BigDecimal.ZERO : e.getPrice();
+            var price = e.getPrice() == null ? BigDecimal.ZERO : e.getPrice();
             var revenue = price.multiply(BigDecimal.valueOf(soldInRange));
 
             return new SalesSummaryItem(
@@ -55,14 +56,15 @@ public class ReportService {
             );
         }).toList();
     }
+
     // B) Event date
     public List<SalesSummaryItem> summaryByEvent(LocalDateTime from, LocalDateTime to) {
         return eventRepo.findAll().stream().map(e -> {
             int soldInRange = ticketRepo.sumQuantityByEventIdBetweenEventDate(e.getId(), from, to);
             int allTimeSold = ticketRepo.sumQuantityByEventId(e.getId());
-            int remaining   = Math.max(0, e.getTotalSeats() - allTimeSold);
+            int remaining = Math.max(0, e.getTotalSeats() - allTimeSold);
 
-            var price   = e.getPrice() == null ? BigDecimal.ZERO : e.getPrice();
+            var price = e.getPrice() == null ? BigDecimal.ZERO : e.getPrice();
             var revenue = price.multiply(BigDecimal.valueOf(soldInRange));
 
             return new SalesSummaryItem(
@@ -71,15 +73,16 @@ public class ReportService {
             );
         }).toList();
     }
+
     // C) All time
     public SalesReport allTimeSales(Long eventId) {
         var e = eventRepo.findById(eventId)
                 .orElseThrow(() -> new ResourceNotFoundException("Etkinlik bulunamadı"));
 
         int soldAllTime = ticketRepo.sumQuantityByEventId(e.getId());
-        int remaining   = Math.max(0, e.getTotalSeats() - soldAllTime);
+        int remaining = Math.max(0, e.getTotalSeats() - soldAllTime);
 
-        var price   = e.getPrice() == null ? BigDecimal.ZERO : e.getPrice();
+        var price = e.getPrice() == null ? BigDecimal.ZERO : e.getPrice();
         var revenue = price.multiply(BigDecimal.valueOf(soldAllTime));
 
         return new SalesReport(
@@ -90,13 +93,18 @@ public class ReportService {
 
 
     }
-    /** Birleşik rapor: tarih aralığı + all-time metrikler tek listede */
+
+    /**
+     * Birleşik rapor: tarih aralığı + all-time metrikler tek listede
+     */
     public List<FullSalesReport> full(LocalDateTime from, LocalDateTime to) {
         // Güvenlik: from > to geldiyse takas et
         LocalDateTime f = from;
         LocalDateTime t = to;
         if (f != null && t != null && f.isAfter(t)) {
-            LocalDateTime tmp = f; f = t; t = tmp;
+            LocalDateTime tmp = f;
+            f = t;
+            t = tmp;
         }
         // 2) tüm etkinlikleri çek
         List<Event> events = eventRepo.findAll();
@@ -140,6 +148,7 @@ public class ReportService {
 
         return out;
     }
+
     /**
      * Excel-dostu CSV (UTF-8 BOM + Türkçe başlıklar).
      * Mevcut full(from,to) verisini kullanır.
@@ -149,7 +158,7 @@ public class ReportService {
         List<FullSalesReport> list = full(from, to);
 
         StringBuilder sb = new StringBuilder();
-        // Başlık satırı
+        // Başlık satırıS
         sb.append("eventId,title,totalSeats,soldInRange,soldAllTime,remaining,price,revenueRange,revenueAllTime\n");
         // 3) Satırlar
         for (FullSalesReport r : list) {
@@ -166,9 +175,9 @@ public class ReportService {
             sb.append(r.soldInRange).append(",");
             sb.append(r.soldAllTime).append(",");
             sb.append(r.remaining).append(",");
-            sb.append(r.price == null ? "0" : r.price).append(",");
-            sb.append(r.revenueRange == null ? "0" : r.revenueRange).append(",");
-            sb.append(r.revenueAllTime == null ? "0" : r.revenueAllTime).append("\n");
+            sb.append(TL.format(r.price == null ? BigDecimal.ZERO : r.price)).append(",");
+            sb.append(TL.format(r.revenueRange == null ? BigDecimal.ZERO : r.revenueRange)).append(",");
+            sb.append(TL.format(r.revenueAllTime == null ? BigDecimal.ZERO : r.revenueAllTime)).append("\n");
         }
 
         // 4) UTF-8 BOM ile byte dizisi hazırla (Excel Türkçe karakterleri sorunsuz görür)
@@ -181,7 +190,10 @@ public class ReportService {
         return out.toByteArray();
 
     }
-    /** İndirilecek dosya adını tarih aralığına göre üret (controller kullanacak) */
+
+    /**
+     * İndirilecek dosya adını tarih aralığına göre üret (controller kullanacak)
+     */
     public String fullCsvFilename(LocalDateTime from, LocalDateTime to) {
         DateTimeFormatter F = DateTimeFormatter.ofPattern("yyyyMMdd-HHmm");
         if (from != null && to != null) {
@@ -194,7 +206,9 @@ public class ReportService {
     }
     // --- SAYFALI FULL RAPOR (Page<FullSalesReport>) ---
 
-    /** Full raporun sayfalı sürümü: page/size/sort/dir parametresi ile */
+    /**
+     * Full raporun sayfalı sürümü: page/size/sort/dir parametresi ile
+     */
     public Page<FullSalesReport> fullPaged(LocalDateTime from, LocalDateTime to,
                                            int page, int size, String sort, String dir) {
         // 1) Sıralama ve sayfalama ayarları
@@ -206,7 +220,11 @@ public class ReportService {
 
         // 3) from>to ise takas (null'lar sorun değil)
         LocalDateTime f = from, t = to;
-        if (f != null && t != null && f.isAfter(t)) { LocalDateTime tmp = f; f = t; t = tmp; }
+        if (f != null && t != null && f.isAfter(t)) {
+            LocalDateTime tmp = f;
+            f = t;
+            t = tmp;
+        }
 
         // 4) Her event için metrikleri hesapla (full(...) ile aynı mantık)
         List<FullSalesReport> content = new ArrayList<>(eventPage.getContent().size());
@@ -226,7 +244,7 @@ public class ReportService {
             int remaining = Math.max(0, totalSeats - soldAllTime);
 
             BigDecimal price = (e.getPrice() == null) ? BigDecimal.ZERO : e.getPrice();
-            BigDecimal revenueRange   = price.multiply(BigDecimal.valueOf(soldInRange));
+            BigDecimal revenueRange = price.multiply(BigDecimal.valueOf(soldInRange));
             BigDecimal revenueAllTime = price.multiply(BigDecimal.valueOf(soldAllTime));
 
             content.add(new FullSalesReport(
@@ -239,6 +257,7 @@ public class ReportService {
         // 5) Page metadata ile dön
         return new PageImpl<>(content, pageable, eventPage.getTotalElements());
     }
+
     // PDF dosya adı
     public String fullPdfFilename(LocalDateTime from, LocalDateTime to) {
         DateTimeFormatter F = DateTimeFormatter.ofPattern("yyyyMMdd-HHmm");
@@ -249,55 +268,88 @@ public class ReportService {
         }
         return "full-sales-report.pdf";
     }
-    /** Full raporu PDF olarak üretir (Türkçe karakter desteği CP1254). */
+    //PDFPDFPDFPDFPDPF
+
+
+    /** Full raporu PDF olarak üretir (başlık, tarih aralığı, zebra, toplam satır). */
     public byte[] fullPdf(LocalDateTime from, LocalDateTime to) {
         List<FullSalesReport> list = full(from, to);
 
         try {
             ByteArrayOutputStream baos = new ByteArrayOutputStream();
-            Document doc = new Document(PageSize.A4.rotate(), 36, 36, 24, 24); // yatay A4
+            Document doc = new Document(PageSize.A4.rotate(), 36, 36, 28, 28);
             PdfWriter.getInstance(doc, baos);
             doc.open();
 
             // Türkçe karakterler için CP1254 kodlamalı standart font
             BaseFont bf = BaseFont.createFont(BaseFont.HELVETICA, "Cp1254", BaseFont.EMBEDDED);
-            Font headerFont = new Font(bf, 12, Font.BOLD);
-            Font cellFont   = new Font(bf, 10, Font.NORMAL);
+            Font h1 = new Font(bf, 16, Font.BOLD);
+            Font h2 = new Font(bf, 10, Font.NORMAL, new GrayColor(0.20f));
+            Font th = new Font(bf, 11, Font.BOLD);
+            Font td = new Font(bf, 10, Font.NORMAL);
 
-            // Başlık
-            String title = "Birleşik Satış Raporu";
-            Paragraph p = new Paragraph(title, headerFont);
-            p.setSpacingAfter(10f);
-            doc.add(p);
+            // --- Başlık ve tarih aralığı ---
+            Paragraph title = new Paragraph("Birleşik Satış Raporu", h1);
+            title.setAlignment(Element.ALIGN_LEFT);
+            title.setSpacingAfter(4f);
+            doc.add(title);
+
+            Paragraph sub = new Paragraph(dateRangeLine(from, to), h2);
+            sub.setSpacingAfter(10f);
+            doc.add(sub);
 
             // Tablo (9 sütun)
             PdfPTable table = new PdfPTable(9);
             table.setWidthPercentage(100);
-            table.setWidths(new float[]{10f, 26f, 10f, 12f, 12f, 10f, 10f, 12f, 12f});
+            table.setWidths(new float[]{8f, 28f, 9f, 12f, 12f, 10f, 10f, 12f, 12f});
 
-            // Header hücreleri
-            addHeader(table, "ID", headerFont);
-            addHeader(table, "Etkinlik Adı", headerFont);
-            addHeader(table, "Toplam", headerFont);
-            addHeader(table, "Aralık Satış", headerFont);
-            addHeader(table, "Tüm Zaman", headerFont);
-            addHeader(table, "Kalan", headerFont);
-            addHeader(table, "Fiyat", headerFont);
-            addHeader(table, "Aralık Geliri", headerFont);
-            addHeader(table, "Toplam Gelir", headerFont);
+            // Header hücreleri, Başlıklar
+            addHeader(table, "ID", th, Element.ALIGN_CENTER);
+            addHeader(table, "Etkinlik Adı", th, Element.ALIGN_LEFT);
+            addHeader(table, "Toplam", th, Element.ALIGN_RIGHT);
+            addHeader(table, "Aralık Satış", th, Element.ALIGN_RIGHT);
+            addHeader(table, "Tüm Zaman", th, Element.ALIGN_RIGHT);
+            addHeader(table, "Kalan", th, Element.ALIGN_RIGHT);
+            addHeader(table, "Fiyat (₺)", th, Element.ALIGN_RIGHT);
+            addHeader(table, "Aralık Geliri (₺)", th, Element.ALIGN_RIGHT);
+            addHeader(table, "Toplam Gelir (₺)", th, Element.ALIGN_RIGHT);
 
-            // Satırlar
+            // Satırlar, Toplamlar
+            int totSoldRange = 0, totSoldAll = 0, totRemaining = 0, totSeats = 0;
+            BigDecimal totRevRange = BigDecimal.ZERO, totRevAll = BigDecimal.ZERO;
+            boolean zebra = false;
             for (FullSalesReport r : list) {
-                addCell(table, String.valueOf(r.eventId), cellFont);
-                addCell(table, r.title == null ? "" : r.title, cellFont);
-                addCell(table, String.valueOf(r.totalSeats), cellFont);
-                addCell(table, String.valueOf(r.soldInRange), cellFont);
-                addCell(table, String.valueOf(r.soldAllTime), cellFont);
-                addCell(table, String.valueOf(r.remaining), cellFont);
-                addCell(table, r.price == null ? "0" : r.price.toPlainString(), cellFont);
-                addCell(table, r.revenueRange == null ? "0" : r.revenueRange.toPlainString(), cellFont);
-                addCell(table, r.revenueAllTime == null ? "0" : r.revenueAllTime.toPlainString(), cellFont);
+                zebra = !zebra;
+                GrayColor rowBg = zebra ? new GrayColor(0.96f) : GrayColor.GRAYWHITE;
+
+                totSoldRange += r.soldInRange;
+                totSoldAll += r.soldAllTime;
+                totRemaining += r.remaining;
+                totSeats += r.totalSeats;
+                totRevRange = totRevRange.add(nvl(r.revenueRange));
+                totRevAll = totRevAll.add(nvl(r.revenueAllTime));
+
+                addCell(table, String.valueOf(r.eventId), td, Element.ALIGN_CENTER, rowBg);
+                addCell(table, text(r.title), td, Element.ALIGN_LEFT, rowBg);
+                addCell(table, String.valueOf(r.totalSeats), td, Element.ALIGN_RIGHT, rowBg);
+                addCell(table, String.valueOf(r.soldInRange), td, Element.ALIGN_RIGHT, rowBg);
+                addCell(table, String.valueOf(r.soldAllTime), td, Element.ALIGN_RIGHT, rowBg);
+                addCell(table, String.valueOf(r.remaining), td, Element.ALIGN_RIGHT, rowBg);
+                addCell(table, TL.format(nvl(r.price)), td, Element.ALIGN_RIGHT, rowBg);
+                addCell(table, TL.format(nvl(r.revenueRange)), td, Element.ALIGN_RIGHT, rowBg);
+                addCell(table, TL.format(nvl(r.revenueAllTime)), td, Element.ALIGN_RIGHT, rowBg);
             }
+// ---    TOPLAM SATIRI ---
+            Font totalFont = new Font(bf, 11, Font.BOLD);
+            GrayColor totalBg = new GrayColor(0.90f);
+            addSpanCell(table, "TOPLAM", totalFont, Element.ALIGN_RIGHT, totalBg, 2);
+            addCell(table, String.valueOf(totSeats), totalFont, Element.ALIGN_RIGHT, totalBg);
+            addCell(table, String.valueOf(totSoldRange), totalFont, Element.ALIGN_RIGHT, totalBg);
+            addCell(table, String.valueOf(totSoldAll), totalFont, Element.ALIGN_RIGHT, totalBg);
+            addCell(table, String.valueOf(totRemaining), totalFont, Element.ALIGN_RIGHT, totalBg);
+            addCell(table, "", totalFont, Element.ALIGN_RIGHT, totalBg);
+            addCell(table, TL.format(totRevRange), totalFont, Element.ALIGN_RIGHT, totalBg);
+            addCell(table, TL.format(totRevAll), totalFont, Element.ALIGN_RIGHT, totalBg);
 
             doc.add(table);
             doc.close();
@@ -307,18 +359,51 @@ public class ReportService {
         }
     }
 
-    // küçük yardımcılar
-    private void addHeader(PdfPTable table, String text, Font font) {
-        PdfPCell cell = new PdfPCell(new Paragraph(text, font)); // hücre + yazı
-        cell.setPadding(5f); // biraz boşluk bırak
-        table.addCell(cell); // tabloya ekle
+    // --- yardımcılar ---
+    private static BigDecimal nvl(BigDecimal v) {
+        return v == null ? BigDecimal.ZERO : v;
     }
 
-    private void addCell(PdfPTable table, String text, Font font) {
-        PdfPCell cell = new PdfPCell(new Paragraph(text, font));// normal hücre
-        cell.setPadding(4f); // biraz dar boşluk
-        table.addCell(cell);
+    private static String text(String s) {
+        return s == null ? "" : s;
     }
 
+    private String dateRangeLine(LocalDateTime from, LocalDateTime to) {
+        DateTimeFormatter F = DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm");
+        if (from != null && to != null) {
+            LocalDateTime a = from.isAfter(to) ? to : from;
+            LocalDateTime b = from.isAfter(to) ? from : to;
+            return "Tarih aralığı: " + F.format(a) + "  –  " + F.format(b);
+        }
+        return "Tarih aralığı: (tüm kayıtlar)";
+    }
+
+    private void addHeader(PdfPTable t, String text, Font font, int align) {
+        PdfPCell c = new PdfPCell(new Paragraph(text, font));
+        c.setHorizontalAlignment(align);
+        c.setPadding(6f);
+        c.setBackgroundColor(new GrayColor(0.90f));
+        c.setBorder(Rectangle.BOTTOM);
+        t.addCell(c);
+    }
+
+    private void addCell(PdfPTable t, String text, Font font, int align, GrayColor bg) {
+        PdfPCell c = new PdfPCell(new Paragraph(text, font));
+        c.setHorizontalAlignment(align);
+        c.setVerticalAlignment(Element.ALIGN_MIDDLE);
+        c.setPadding(5f);
+        c.setBackgroundColor(bg);
+        t.addCell(c);
+    }
+
+    private void addSpanCell(PdfPTable t, String text, Font font, int align, GrayColor bg, int colspan) {
+        PdfPCell c = new PdfPCell(new Paragraph(text, font));
+        c.setColspan(colspan);
+        c.setHorizontalAlignment(align);
+        c.setVerticalAlignment(Element.ALIGN_MIDDLE);
+        c.setPadding(6f);
+        c.setBackgroundColor(bg);
+        t.addCell(c);
+    }
 }
 

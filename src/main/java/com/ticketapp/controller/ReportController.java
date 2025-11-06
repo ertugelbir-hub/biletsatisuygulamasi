@@ -12,11 +12,11 @@ import io.swagger.v3.oas.annotations.media.ExampleObject;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.constraints.NotNull;
 import org.springframework.data.domain.Page;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -25,6 +25,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.io.IOException;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -178,24 +179,26 @@ public class ReportController {
             }
     )
 
+    // CSV
     @GetMapping("/full.csv")
-    public ResponseEntity<byte[]> fullCsv(
+    public void fullCsv(
             @RequestParam(required = false)
             @DateTimeFormat(pattern = "yyyy-MM-dd'T'HH:mm") LocalDateTime from,
             @RequestParam(required = false)
-            @DateTimeFormat(pattern = "yyyy-MM-dd'T'HH:mm") LocalDateTime to
-    ) {
-        byte[] csv = reportService.fullCsv(from, to);
+            @DateTimeFormat(pattern = "yyyy-MM-dd'T'HH:mm") LocalDateTime to,
+            HttpServletResponse response) throws IOException {
 
+        byte[] csv = reportService.fullCsv(from, to);
         String filename = reportService.fullCsvFilename(from, to);
 
-        HttpHeaders headers = new HttpHeaders();
-        headers.setContentType(new MediaType("text", "csv"));
-        headers.set(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + filename + "\"");
-        headers.set(HttpHeaders.CACHE_CONTROL, "no-cache, no-store, must-revalidate");
-
-        return new ResponseEntity<>(csv, headers, HttpStatus.OK);
+        response.setStatus(HttpServletResponse.SC_OK);
+        response.setContentType("text/csv");
+        response.setHeader(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + filename + "\"");
+        response.setHeader(HttpHeaders.CACHE_CONTROL, "no-cache, no-store, must-revalidate");
+        response.getOutputStream().write(csv);
+        response.flushBuffer();
     }
+
 
 
     @Operation(
@@ -260,7 +263,7 @@ public class ReportController {
                     )
             }
     )
-    @GetMapping("/full.pdf")
+    @GetMapping(value = "/full.pdf", produces = "application/pdf")
     public ResponseEntity<byte[]> fullPdf(
             @Parameter(example = "2025-12-01T00:00")
             @RequestParam(required = false)
@@ -269,14 +272,14 @@ public class ReportController {
             @RequestParam(required = false)
             @DateTimeFormat(pattern = "yyyy-MM-dd'T'HH:mm") LocalDateTime to
     ) {
-        byte[] pdf = reportService.fullPdf(from, to);
+        byte[] body = reportService.fullPdf(from, to);
         String filename = reportService.fullPdfFilename(from, to);
 
-        HttpHeaders headers = new HttpHeaders();
-        headers.setContentType(MediaType.APPLICATION_PDF);
-        headers.set(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + filename + "\"");
-        headers.set(HttpHeaders.CACHE_CONTROL, "no-cache, no-store, must-revalidate");
-
-        return new ResponseEntity<>(pdf, headers, HttpStatus.OK);
+        return ResponseEntity
+                .ok()
+                .contentType(MediaType.APPLICATION_PDF)
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + filename + "\"")
+                .header(HttpHeaders.CACHE_CONTROL, "no-cache, no-store, must-revalidate")
+                .body(body);
     }
 }

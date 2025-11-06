@@ -47,6 +47,7 @@ public class SecurityConfig {
                         // Event listesini herkes görebilsin (istersen authenticated yapabilirsin)
                         .requestMatchers(HttpMethod.GET, "/api/events/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/events/reports/**").hasRole("ADMIN")
+                        .requestMatchers("/api/reports/**").hasRole("ADMIN")
                           // Tickets: login şart
                                 .requestMatchers("/api/tickets/**").authenticated()
                         .anyRequest().permitAll()

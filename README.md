@@ -1,108 +1,121 @@
-# 📌 TicketApp — Bilet Satış Uygulaması (Java 21 + Spring Boot)
+# 🎫 TicketApp
 
-TicketApp; etkinlik yönetimi, bilet satışı, kullanıcı kayıt/giriş ve satış raporlama özellikleri içeren tam kapsamlı bir **Java Spring Boot** backend uygulamasıdır.
-JWT tabanlı güvenlik, rol bazlı erişim kontrolü, kapsamlı testler ve Swagger/OpenAPI dokümantasyonu içerir.
+Java Spring Boot ile geliştirilmiş basit bir **bilet satış uygulaması**.
 
-## 🚀 Teknolojiler
-- Java 21
-- Spring Boot 3.x
-- Spring Security + JWT
-- Spring Data JPA (Hibernate)
-- H2 Database (in-memory)
-- JUnit 5 + Mockito + MockMvc
-- Swagger / OpenAPI
-- Gradle / Maven
+Bu proje, kullanıcıların etkinlikleri görüntüleyip bilet satın
+alabildiği; admin tarafında ise etkinlik ekleme, silme, güncelleme gibi
+işlemlerin yapılabildiği temel bir backend uygulamasıdır.
 
-## 📘 Swagger (API Dokümantasyonu)
-http://localhost:8080/swagger-ui.html
+------------------------------------------------------------------------
 
-## 🔐 Kimlik Doğrulama
-```
-POST /api/auth/register
-POST /api/auth/login
-```
+## 📌 Özellikler
 
-### Roller:
-- ROLE_USER
-- ROLE_ADMIN
+### 👤 Kullanıcı İşlemleri
 
-## 🎫 Event Endpoint’leri
-```
-GET    /api/events
-GET    /api/events/{id}
-POST   /api/events        (ADMIN)
-PUT    /api/events/{id}   (ADMIN)
-DELETE /api/events/{id}   (ADMIN)
-```
+-   Kayıt olma\
+-   Giriş yapma (JWT ile)\
+-   Bilet satın alma
 
-## 🎟 Ticket Endpoint’leri
-```
-POST /api/tickets/purchase
-{
-  "eventId": 1,
-  "quantity": 2
-}
-```
+### 🎭 Etkinlik İşlemleri (Admin)
 
-## 📊 Raporlama
-```
-GET /api/reports/sales
-GET /api/reports/sales/full.pdf   (ADMIN)
-GET /api/reports/sales/full.csv   (ADMIN)
-```
+-   Etkinlik oluşturma\
+-   Etkinlik güncelleme\
+-   Etkinlik silme\
+-   Etkinlik listeleme
 
-## 📁 Proje Yapısı
-```
-src/
- ├── main/java/com.ticketapp
- │    ├── controller
- │    ├── service
- │    ├── repository
- │    ├── dto
- │    ├── entity
- │    └── security
- └── test/java/com.ticketapp
-      ├── controller
-      ├── service
-      └── TicketAppApplicationTests
-```
+### 🎫 Bilet Satın Alma
 
-## 🧪 Test Kapsamı
-- 25+ test
-- Controller testleri
-- Service testleri
-- JWT filtre mock testleri
-- Tümü geçiyor
-- 1 adet @Disabled güvenlik testi (bilinçli)
+-   Koltuk kontrolü\
+-   Etkinlik ve kullanıcı doğrulama\
+-   Yeterli koltuk yoksa hata döndürme\
+-   Optimistic locking (aynı anda satın alma çakışmalarını önleme)
 
-## 🗃 Varsayılan Kullanıcılar
-| Rol | Username | Şifre |
-|------|----------|--------|
-| Admin | ahmet | ahmet123 |
-| User | ayse | ayse123 |
+### 📊 Satış Raporu
 
-## 🏁 Çalıştırma
-### Maven:
-```
-mvn spring-boot:run
-```
-### Gradle:
-```
-./gradlew bootRun
-```
+-   Etkinlik başına satılan bilet sayısı\
+-   Kalan kapasite\
+-   Toplam gelir
 
-### Testler:
-```
-mvn test
-```
+------------------------------------------------------------------------
 
-## 🧱 Gelecek Adımlar
-- React/Next.js frontend
-- JWT login entegrasyonu
-- Event listesi arayüzü
-- Bilet satın alma UI
-- Admin paneli
-- Docker Compose entegrasyonu
+## 🛠 Kullanılan Teknolojiler
 
-## 📄 Lisans
-MIT License
+-   Java 21\
+-   Spring Boot\
+-   Spring Web\
+-   Spring Data JPA\
+-   Spring Security (JWT)\
+-   Lombok\
+-   H2 Database (test)\
+-   MySQL / H2 (dev)\
+-   Mockito + JUnit test
+
+------------------------------------------------------------------------
+
+## 📂 Proje Yapısı
+
+    src/main/java/com/ticketapp
+     ├── controller/
+     ├── service/
+     ├── repository/
+     ├── security/
+     ├── exception/
+     └── dto/
+
+------------------------------------------------------------------------
+
+## ▶️ Çalıştırma
+
+1.  Projeyi klonla:
+
+```{=html}
+<!-- -->
+```
+    git clone <repo-link>
+
+2.  Proje klasörüne gir:
+
+```{=html}
+<!-- -->
+```
+    cd ticket-app
+
+3.  Uygulamayı başlat:
+
+```{=html}
+<!-- -->
+```
+    mvn spring-boot:run
+
+------------------------------------------------------------------------
+
+## 🔐 Swagger Arayüzü
+
+Projeyi çalıştırınca şu adresten erişilir:
+
+    http://localhost:8080/swagger-ui.html
+
+------------------------------------------------------------------------
+
+## 🧪 Test Çalıştırma
+
+Tüm testler:
+
+    mvn test
+
+Sadece TicketService test:
+
+    mvn -Dtest=TicketServiceTest test
+
+------------------------------------------------------------------------
+
+## ⚙️ Profiller
+
+-   Varsayılan profil: **dev**\
+-   Testler otomatik olarak: **test** profili
+
+------------------------------------------------------------------------
+
+## 👨‍💻 Geliştirici
+
+**Mehmet Ertuğ Elbir**

@@ -115,6 +115,11 @@ Sadece TicketService test:
 -   Testler otomatik olarak: **test** profili
 
 ------------------------------------------------------------------------
+## Proje Durumu
+
+- ✅ Backend (Java 21, Spring Boot, JWT, REST API) büyük ölçüde tamamlandı.
+- 🚧 Frontend (React) geliştirme aşamasında, aktif olarak üzerinde çalışıyorum.
+
 
 ## 👨‍💻 Geliştirici
 

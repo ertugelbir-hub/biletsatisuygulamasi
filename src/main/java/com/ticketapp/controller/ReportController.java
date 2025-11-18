@@ -12,6 +12,7 @@ import io.swagger.v3.oas.annotations.media.ExampleObject;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.constraints.NotNull;
 import org.springframework.data.domain.Page;
@@ -30,7 +31,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 import static com.ticketapp.config.SwaggerExamples.*;
-
+@Tag(name = "Reports", description = "Satış raporları ve istatistikler")
 @RestController
 @RequestMapping("/api/reports/sales")
 @PreAuthorize("hasRole('ADMIN')")

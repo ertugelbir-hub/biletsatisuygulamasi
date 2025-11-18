@@ -10,6 +10,7 @@ import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.ExampleObject;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -25,6 +26,7 @@ import static com.ticketapp.config.SwaggerExamples.LOGIN_RES;
 //Spring’de @Valid, kullanıcıdan gelen veriyi (request body) doğrulamak için kullanılır.
 //Yani sen @NotBlank, @Positive, @NotNull gibi kuralları DTO’ya yazarsın,
 //@Valid ise o kuralları aktif hale getirir.
+@Tag(name = "Authentication", description = "Kayıt olma ve giriş işlemleri")
 @RestController                                     // SPRING: HTTP istekleri, JSON dönüş
 @RequestMapping("/api/auth")                        // SPRING: bu controller'ın base path'i
 public class AuthController {

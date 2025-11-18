@@ -9,6 +9,7 @@ import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.ExampleObject;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -24,7 +25,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 import static com.ticketapp.config.SwaggerExamples.*;
-
+@Tag(name = "Events", description = "Etkinlik oluşturma, listeleme ve yönetim işlemleri")
 @RestController
 @RequestMapping("/api/events")
 @Validated // <-- Parametre doğrulamaları için şart

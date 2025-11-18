@@ -3,7 +3,8 @@ package com.ticketapp.service;
 import com.ticketapp.dto.PurchaseRequest;
 import com.ticketapp.entity.Event;
 import com.ticketapp.entity.Ticket;
-import com.ticketapp.entity.User;               // ✅ YENİ
+import com.ticketapp.entity.User;
+import com.ticketapp.exception.ResourceNotFoundException;
 import com.ticketapp.repository.EventRepository;
 import com.ticketapp.repository.TicketRepository;
 import com.ticketapp.repository.UserRepository;
@@ -17,7 +18,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.Optional;
-
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
@@ -117,5 +118,83 @@ class TicketServiceTest {
         assertTrue(ex.getMessage().startsWith("Yeterli koltuk yok"));
         verify(ticketRepository, never()).save(any(Ticket.class));
     }
+    /**
+     * quantity <= 0 ise servis hemen IllegalArgumentException fırlatmalı
+     * ve hiçbir repository ile konuşmamalı.
+     */
+    @Test
+    void purchase_whenQuantityZero_throwsRuntimeException() {
+        // GIVEN
+        PurchaseRequest request = new PurchaseRequest();
+        request.eventId = 1L;
+        request.quantity = 0; // geçersiz adet
+
+        // WHEN
+        RuntimeException ex = assertThrows(
+                RuntimeException.class,
+                () -> ticketService.purchase(request, "ahmet123")
+        );
+
+        // THEN
+        assertEquals("Adet 1 veya daha fazla olmalı", ex.getMessage());
+
+        // Hiç repository çağrılmamalı
+        verifyNoInteractions(userRepository, eventRepository, ticketRepository);
+    }
+
+
+
+    /**
+     * Event bulunamazsa ResourceNotFoundException fırlatılmalı
+     * ve ticket kaydı yapılmamalı.
+     */
+    @Test
+    void purchase_whenEventNotFound_throwsResourceNotFoundException() {
+        // GIVEN
+        PurchaseRequest request = new PurchaseRequest();
+        request.eventId = 999L; // olmayan id
+        request.quantity = 1;
+
+        User user = new User();
+        user.setId(1L);
+        user.setUsername("ahmet123");
+
+        when(userRepository.findByUsername("ahmet123"))
+                .thenReturn(java.util.Optional.of(user));
+
+        when(eventRepository.findById(999L))
+                .thenReturn(java.util.Optional.empty());
+
+        // WHEN
+        ResourceNotFoundException ex = assertThrows(
+                ResourceNotFoundException.class,
+                () -> ticketService.purchase(request, "ahmet123")
+        );
+
+        // THEN
+        assertEquals("Etkinlik bulunamadı", ex.getMessage());
+        verify(ticketRepository, never()).save(any(Ticket.class));
+    }
+
+
+    @Test
+    void purchase_whenQuantityInvalid_throwsRuntimeException() {
+        // GIVEN
+        PurchaseRequest request = new PurchaseRequest();
+        request.eventId = 1L;
+        request.quantity = 0;   // veya -5 gibi
+
+        // WHEN
+        RuntimeException ex = assertThrows(
+                RuntimeException.class,
+                () -> ticketService.purchase(request, "ahmet123")
+        );
+
+        // THEN
+        assertEquals("Adet 1 veya daha fazla olmalı", ex.getMessage());
+        verify(ticketRepository, never()).save(any(Ticket.class));
+    }
+
+
 
 }

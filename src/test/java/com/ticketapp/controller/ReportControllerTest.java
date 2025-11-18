@@ -92,13 +92,13 @@ class ReportControllerTest {
                 .andExpect(content().bytes(pdf));
     }
 
-    /**
-     * 3) Güvenlik testi (şimdilik devre dışı):
-     *    Security filtrelerini addFilters=false ile kapattığımız için burada 403 alamıyoruz.
-     *    Gerçek entegrasyon testi yazınca bu @Disabled kaldırılacak.
-     */
-    @Disabled("Security filtreleri kapalı olduğu için şu an 403 yerine 200 dönüyor; " +
-            "güvenlik entegrasyon testi yazıldığında tekrar aktif edilecek")
+//    /**
+//     * 3) Güvenlik testi (şimdilik devre dışı):
+//     *    Security filtrelerini addFilters=false ile kapattığımız için burada 403 alamıyoruz.
+//     *    Gerçek entegrasyon testi yazınca bu @Disabled kaldırılacak.
+//     */
+@Disabled("Security filtreleri test profilinde kapalı (addFilters = false). " +
+        "Gerçek 403 testi JWT ile entegrasyon testinde yazılacak.")
     @Test
     void full_admin_required_403() throws Exception {
         mvc.perform(get("/api/reports/sales/full.pdf")

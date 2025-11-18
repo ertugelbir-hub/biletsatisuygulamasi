@@ -3,6 +3,7 @@ package com.ticketapp.service;
 import com.ticketapp.dto.PurchaseRequest;
 import com.ticketapp.entity.Event;
 import com.ticketapp.entity.Ticket;
+import com.ticketapp.entity.User;
 import com.ticketapp.exception.ResourceNotFoundException;
 import com.ticketapp.repository.EventRepository;
 import com.ticketapp.repository.TicketRepository;
@@ -17,74 +18,89 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 @Service
-
 public class TicketService {
+
     private final EventRepository eventRepo;
     private final TicketRepository ticketRepo;
     private final UserRepository userRepo;
-    public TicketService(EventRepository eventRepo, TicketRepository ticketRepo,UserRepository userRepo) {
+
+    public TicketService(EventRepository eventRepo,
+                         TicketRepository ticketRepo,
+                         UserRepository userRepo) {
         this.eventRepo = eventRepo;
         this.ticketRepo = ticketRepo;
         this.userRepo = userRepo;
     }
+
     /** Kaç defa tekrar denesin? Yüksek trafik için 3–5 yeterli */
     private static final int MAX_RETRY = 3;
 
     @Transactional
-    public Ticket purchase(PurchaseRequest r,String username) {
+    public Ticket purchase(PurchaseRequest r, String username) {
+        // 1) quantity validation
         if (r.quantity <= 0) {
             throw new RuntimeException("Adet 1 veya daha fazla olmalı");
         }
 
-        // (İsteğe bağlı) kullanıcıyı doğrula
-        userRepo.findByUsername(username)
+        // 2) Kullanıcıyı bul
+        User user = userRepo.findByUsername(username)
                 .orElseThrow(() -> new ResourceNotFoundException("Kullanıcı bulunamadı"));
 
+        // 3) Event'i bul
+        Event event = eventRepo.findById(r.eventId)
+                .orElseThrow(() -> new ResourceNotFoundException("Etkinlik bulunamadı"));
+
+        // 4) Optimistic locking ile satın alma
         for (int attempt = 1; attempt <= MAX_RETRY; attempt++) {
             try {
-                // 1) Event oku
+                // 1) Event oku (güncel hali)
                 Event e = eventRepo.findById(r.eventId)
                         .orElseThrow(() -> new ResourceNotFoundException("Etkinlik bulunamadı"));
 
-                // 2) Kalan koltuk = totalSeats - sold
                 int sold = ticketRepo.sumQuantityByEventId(e.getId());
                 int remaining = e.getTotalSeats() - sold;
 
                 if (remaining < r.quantity) {
                     throw new RuntimeException("Yeterli koltuk yok (kalan: " + remaining + ")");
                 }
-                //  3) Bileti oluştur
+
+                // 3) Bileti oluştur
                 Ticket t = new Ticket();
                 t.setEvent(e);
                 t.setUsername(username);
                 t.setQuantity(r.quantity);
                 t.setCreatedAt(LocalDateTime.now());
 
+                // 4) Kaydet ve dön
                 return ticketRepo.save(t);
-                // Not: versiyon çakışması olursa JPA flush’ta
-                // OptimisticLockingFailureException fırlatır ve catch’e düşer.
-
 
             } catch (OptimisticLockingFailureException ex) {
-                // çakışma
+                // Versiyon çakışması olursa tekrar dene
                 if (attempt == MAX_RETRY) {
                     throw new RuntimeException("İşlem çakıştı, lütfen tekrar deneyin.");
                 }
-                // küçük bir bekleme (isteğe bağlı)
                 try {
-                    Thread.sleep(50L * attempt);
+                    Thread.sleep(100L * attempt);
                 } catch (InterruptedException ignored) {
+                    Thread.currentThread().interrupt();
                 }
             }
         }
-        throw new RuntimeException("Satın alma başarısız");
+
+        // Normalde buraya düşmez ama derleyici için:
+        throw new RuntimeException("Satın alma işlemi başarısız oldu.");
     }
-    public List<Ticket> listAll() { return ticketRepo.findAll();
+
+
+
+    public List<Ticket> listAll() {
+        return ticketRepo.findAll();
     }
 
     public List<Ticket> listByUsername(String username) {
         return ticketRepo.findByUsername(username);
     }
+
     @Transactional
     public void cancel(Long ticketId, String username) {
         Ticket t = ticketRepo.findById(ticketId)
@@ -99,14 +115,9 @@ public class TicketService {
         if (!owner && !admin) {
             throw new RuntimeException("Bu bileti iptal etme yetkiniz yok");
         }
-        // NOT: totalSeats'i değiştirmiyoruz. Satış "sum(quantity)" ile hesaplandığı için
-        // bilet silmek zaten toplam satışı azaltır (iade etkisi otomatik yansır).
+
+        // totalSeats'i değiştirmiyoruz; satış sum(quantity) ile hesaplanıyor.
         ticketRepo.deleteById(ticketId);
-//        Event e = t.getEvent();
-//        e.setTotalSeats(e.getTotalSeats() + t.getQuantity());
-//        eventRepo.save(e);
-
-
     }
 
     public List<Ticket> myTickets(String username) {

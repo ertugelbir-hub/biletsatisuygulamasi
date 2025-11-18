@@ -71,7 +71,7 @@ işlemlerin yapılabildiği temel bir backend uygulamasıdır.
 ```{=html}
 <!-- -->
 ```
-    git clone <repo-link>
+    git clone https://github.com/ertugelbir-hub/biletsatisuygulamasi.git
 
 2.  Proje klasörüne gir:
 

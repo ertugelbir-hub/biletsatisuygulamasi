@@ -4,6 +4,7 @@ import com.ticketapp.dto.PurchaseRequest;
 import com.ticketapp.entity.Event;
 import com.ticketapp.entity.Ticket;
 import com.ticketapp.entity.User;
+import com.ticketapp.exception.ErrorMessages;
 import com.ticketapp.exception.ResourceNotFoundException;
 import com.ticketapp.repository.EventRepository;
 import com.ticketapp.repository.TicketRepository;
@@ -39,29 +40,29 @@ public class TicketService {
     public Ticket purchase(PurchaseRequest r, String username) {
         // 1) quantity validation
         if (r.quantity <= 0) {
-            throw new RuntimeException("Adet 1 veya daha fazla olmalı");
+            throw new RuntimeException(ErrorMessages.INVALID_QUANTITY);
         }
 
         // 2) Kullanıcıyı bul
         User user = userRepo.findByUsername(username)
-                .orElseThrow(() -> new ResourceNotFoundException("Kullanıcı bulunamadı"));
+                .orElseThrow(() -> new ResourceNotFoundException(ErrorMessages.USER_NOT_FOUND));
 
         // 3) Event'i bul
         Event event = eventRepo.findById(r.eventId)
-                .orElseThrow(() -> new ResourceNotFoundException("Etkinlik bulunamadı"));
+                .orElseThrow(() -> new ResourceNotFoundException(ErrorMessages.EVENT_NOT_FOUND));
 
         // 4) Optimistic locking ile satın alma
         for (int attempt = 1; attempt <= MAX_RETRY; attempt++) {
             try {
                 // 1) Event oku (güncel hali)
                 Event e = eventRepo.findById(r.eventId)
-                        .orElseThrow(() -> new ResourceNotFoundException("Etkinlik bulunamadı"));
+                        .orElseThrow(() -> new ResourceNotFoundException(ErrorMessages.EVENT_NOT_FOUND));
 
                 int sold = ticketRepo.sumQuantityByEventId(e.getId());
                 int remaining = e.getTotalSeats() - sold;
 
                 if (remaining < r.quantity) {
-                    throw new RuntimeException("Yeterli koltuk yok (kalan: " + remaining + ")");
+                    throw new RuntimeException(ErrorMessages.NO_SEATS_LEFT + " (kalan: " + remaining + ")");
                 }
 
                 // 3) Bileti oluştur
@@ -77,7 +78,7 @@ public class TicketService {
             } catch (OptimisticLockingFailureException ex) {
                 // Versiyon çakışması olursa tekrar dene
                 if (attempt == MAX_RETRY) {
-                    throw new RuntimeException("İşlem çakıştı, lütfen tekrar deneyin.");
+                    throw new RuntimeException(ErrorMessages.RETRY_FAILED);
                 }
                 try {
                     Thread.sleep(100L * attempt);
@@ -88,7 +89,7 @@ public class TicketService {
         }
 
         // Normalde buraya düşmez ama derleyici için:
-        throw new RuntimeException("Satın alma işlemi başarısız oldu.");
+        throw new RuntimeException(ErrorMessages.PURCHASE_FAILED);
     }
 
 
@@ -104,7 +105,7 @@ public class TicketService {
     @Transactional
     public void cancel(Long ticketId, String username) {
         Ticket t = ticketRepo.findById(ticketId)
-                .orElseThrow(() -> new ResourceNotFoundException("Bilet bulunamadı"));
+                .orElseThrow(() -> new ResourceNotFoundException(ErrorMessages.TICKET_NOT_FOUND));
         boolean owner = t.getUsername().equalsIgnoreCase(username);
 
         // Kullanıcının yetkilerinde ROLE_ADMIN var mı?
@@ -113,7 +114,7 @@ public class TicketService {
                 .anyMatch(a -> "ROLE_ADMIN".equals(a.getAuthority()));
 
         if (!owner && !admin) {
-            throw new RuntimeException("Bu bileti iptal etme yetkiniz yok");
+            throw new RuntimeException(ErrorMessages.TICKET_CANCEL_FORBIDDEN);
         }
 
         // totalSeats'i değiştirmiyoruz; satış sum(quantity) ile hesaplanıyor.

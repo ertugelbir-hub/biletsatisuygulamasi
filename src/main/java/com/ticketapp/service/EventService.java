@@ -3,6 +3,7 @@ package com.ticketapp.service;
 import com.ticketapp.dto.EventRequest;
 import com.ticketapp.dto.SalesReport;
 import com.ticketapp.entity.Event;
+import com.ticketapp.exception.ErrorMessages;
 import com.ticketapp.exception.ResourceNotFoundException;
 import com.ticketapp.repository.EventRepository;
 import com.ticketapp.repository.TicketRepository;
@@ -11,9 +12,8 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
-import java.time.LocalDateTime;
 import java.math.BigDecimal;
-
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -45,7 +45,7 @@ public class EventService {
     }
     public Event update(Long id, EventRequest r) {
         Event e = repo.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Etkinlik bulunamadı"));
+                .orElseThrow(() -> new ResourceNotFoundException(ErrorMessages.EVENT_NOT_FOUND));
         e.setTitle(r.getTitle());
         e.setCity(r.getCity());
         e.setType(r.getType());
@@ -57,14 +57,14 @@ public class EventService {
     }
     public void delete(Long id) {
         if (!repo.existsById(id)) {
-            throw new RuntimeException("Event bulunamadı");
+            throw new RuntimeException(ErrorMessages.EVENT_NOT_FOUND);
         }
         repo.deleteById(id);
     }
 
     public SalesReport salesReport(Long eventId) {
         Event e = repo.findById(eventId)
-                .orElseThrow(() -> new RuntimeException("Event bulunamadı"));
+                .orElseThrow(() -> new RuntimeException(ErrorMessages.EVENT_NOT_FOUND));
 
         int sold = ticketRepo.sumQuantityByEventId(e.getId());
         int remaining = e.getTotalSeats() - sold;

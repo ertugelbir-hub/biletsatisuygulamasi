@@ -3,6 +3,7 @@ package com.ticketapp.service;
 import com.ticketapp.dto.EventRequest;
 import com.ticketapp.dto.SalesReport;
 import com.ticketapp.entity.Event;
+import com.ticketapp.exception.ErrorMessages;
 import com.ticketapp.exception.ResourceNotFoundException;
 import com.ticketapp.repository.EventRepository;
 import com.ticketapp.repository.TicketRepository;
@@ -83,7 +84,7 @@ class EventServiceTest {
         ResourceNotFoundException ex = assertThrows(ResourceNotFoundException.class,
                 () -> eventService.update(5L, r));
 
-        assertEquals("Etkinlik bulunamadı", ex.getMessage());
+        assertEquals(ErrorMessages.EVENT_NOT_FOUND, ex.getMessage());
     }
 
     /**
@@ -96,7 +97,7 @@ class EventServiceTest {
         RuntimeException ex = assertThrows(RuntimeException.class,
                 () -> eventService.delete(10L));
 
-        assertEquals("Event bulunamadı", ex.getMessage());
+        assertEquals(ErrorMessages.EVENT_NOT_FOUND, ex.getMessage());
         // deleteById hiç çağrılmamalı
         verify(eventRepository, never()).deleteById(anyLong());
     }

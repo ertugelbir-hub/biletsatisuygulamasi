@@ -88,7 +88,7 @@ public class TicketController {
             @ApiResponse(responseCode = "200", description = "Bilet listesi başarıyla döndü"),
             @ApiResponse(responseCode = "401", description = "Kimlik doğrulama başarısız")
     })
-    @GetMapping("/api/tickets/my")
+    @GetMapping("/my")
     public ResponseEntity<List<Ticket>> myTickets(Principal principal) {
         List<Ticket> list = service.myTickets(principal.getName());
         return ResponseEntity.ok(list);

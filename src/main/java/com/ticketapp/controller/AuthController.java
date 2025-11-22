@@ -97,5 +97,15 @@ public class AuthController {
         String token = jwtService.generate(user.getUsername(), user.getRole());
         return ResponseEntity.ok(Map.of("token", token));
     }
+    @PostMapping("/change-password")
+    // Token ile gelen kullanıcı (Principal) şifresini değiştiriyor
+    public ResponseEntity<String> changePassword(@RequestBody Map<String, String> request, java.security.Principal principal) {
+        String oldPass = request.get("oldPassword");
+        String newPass = request.get("newPassword");
 
+        // principal.getName() -> Token'daki username
+        userService.changePassword(principal.getName(), oldPass, newPass);
+
+        return ResponseEntity.ok("Şifre başarıyla değiştirildi.");
+    }
 }

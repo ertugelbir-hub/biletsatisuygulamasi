@@ -31,7 +31,24 @@ public class UserService {
         user.setPassword(passwordEncoder.encode(user.getPassword()));
         return userRepository.save(user);
     }
+    @Transactional
+    public void changePassword(String username, String oldPassword, String newPassword) {
+        User user = getByUsernameOr404(username);
 
+        // 1. Eski şifre doğru mu?
+        if (!passwordEncoder.matches(oldPassword, user.getPassword())) {
+            throw new RuntimeException("Mevcut şifre yanlış!");
+        }
+
+        // 2. Yeni şifre güvenli mi? (Basit kontrol)
+        if (newPassword.length() < 4) {
+            throw new RuntimeException("Yeni şifre en az 4 karakter olmalı.");
+        }
+
+        // 3. Değiştir ve Kaydet
+        user.setPassword(passwordEncoder.encode(newPassword));
+        userRepository.save(user);
+    }
 
     public Optional<User> findByUsername(String username) {
         return userRepository.findByUsername(username);

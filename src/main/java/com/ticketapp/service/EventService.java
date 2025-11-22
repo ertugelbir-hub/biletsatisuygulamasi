@@ -16,9 +16,19 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Random;
 
 @Service
 public class EventService {
+
+    // Havalı varsayılan resimler (Unsplash'tan)
+    private static final String[] DEFAULT_IMAGES = {
+            "https://images.unsplash.com/photo-1501281668745-f7f57925c3b4?auto=format&fit=crop&w=800&q=80",
+            "https://cdn.bubilet.com.tr/cdn-cgi/image/format=auto,width=828/https://cdn.bubilet.com.tr/files/Blog/resim-adi-37993.jpg",
+            "https://blog.biletino.com/wp-content/uploads/2022/03/Konser-nedir-biletino-11245.jpg",
+            "https://fs.galataport.com/cdn/uploads/000003402_1.png"
+    };
+
     private final EventRepository repo;
     private final TicketRepository ticketRepo;
     public EventService(EventRepository repo, TicketRepository ticketRepo) {
@@ -36,6 +46,14 @@ public class EventService {
         e.setDateTime(r.getDateTime());
         e.setTotalSeats(r.totalSeats);
         e.setPrice(r.price);
+        if (r.getImageUrl() != null && !r.getImageUrl().isBlank()) {
+            // Admin resim verdiyse onu kullan
+            e.setImageUrl(r.getImageUrl());
+        } else {
+            // Vermediyse rastgele bir tane seç
+            int randomIndex = new Random().nextInt(DEFAULT_IMAGES.length);
+            e.setImageUrl(DEFAULT_IMAGES[randomIndex]);
+        }
         return repo.save(e);
     }
 
@@ -95,6 +113,7 @@ public class EventService {
                               Pageable pageable) {
         return repo.search(city, type, q, from, to, pageable);
     }
+
     public List<SalesReport> salesSummary(LocalDateTime from, LocalDateTime to) {
         // 1) Aralıktaki etkinlikleri çek
         Page<Event> page = repo.search(null, null, null, from, to, PageRequest.of(0, 1000));
@@ -119,10 +138,15 @@ public class EventService {
                     remaining,
                     price,
                     revenue
+
             ));
+
         }
+
         return list;
+
     }
+
 
 
 }

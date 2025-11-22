@@ -24,6 +24,7 @@ public class EventRequest {
     @NotNull
     @DecimalMin(value = "0.01",message = "Fiyat 0'dan büyük olmalıdır")
     public BigDecimal price; //boş olamaz min 0.01 olucak
+    private String imageUrl;
 
     // Boş constructor (JSON -> DTO map’lemek için gerekli)
     public EventRequest() {}
@@ -60,6 +61,9 @@ public class EventRequest {
 
     public BigDecimal getPrice() { return price; }
     public void setPrice(BigDecimal price) { this.price = price; }
+
+    public String getImageUrl() { return imageUrl; }
+    public void setImageUrl(String imageUrl) { this.imageUrl = imageUrl; }
 }
 
 

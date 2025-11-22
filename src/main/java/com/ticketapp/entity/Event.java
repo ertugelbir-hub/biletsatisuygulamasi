@@ -18,6 +18,8 @@ public class Event {
     private LocalDateTime dateTime;
     private int totalSeats;   // Toplam koltuk
     private BigDecimal price;        // Basit olması için int
+    @Column(length = 1000)
+    private String imageUrl;
 
     public Event() {}
     /** Optimistic Lock versiyonu — JPA bu alanı otomatik yönetir */
@@ -42,5 +44,7 @@ public class Event {
     public void setPrice(BigDecimal price) { this.price = price; }
     public Long getVersion() { return version; }
     public void setVersion(Long version) { this.version = version; }
+    public String getImageUrl() { return imageUrl; }
+    public void setImageUrl(String imageUrl) { this.imageUrl = imageUrl; }
 }
 

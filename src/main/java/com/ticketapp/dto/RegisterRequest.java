@@ -12,6 +12,9 @@ package com.ticketapp.dto;
  * }
  */
 import jakarta.validation.constraints.*;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
+import jakarta.validation.constraints.Email;
 public class RegisterRequest {
     @NotBlank(message = "Kullanıcı adı zorunludur") public String username;
     @NotBlank(message = "Şifre zorunludur ve 4 ile 64 basamak olmalıdır")

@@ -1,50 +1,58 @@
 package com.ticketapp.entity;
 
-import jakarta.persistence.*;
+import jakarta.persistence.Entity;
+import jakarta.persistence.Table;
+import jakarta.persistence.Id;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Column;
+import jakarta.persistence.Version;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
+
 @Entity
 @Table(name = "events")
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
 public class Event {
-    @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    private String title;     // Etkinlik adı
-    private String city;      // Ankara, İstanbul...
-    private String type;      // music, cinema, theatre, sport
-    private String venue;     // Salon
+    // columnDefinition = "TEXT" veya "VARCHAR(255)" diyerek
+    // veritabanına bunun kesinlikle YAZI olduğunu garanti ediyoruz.
+
+    @Column(nullable = false, columnDefinition = "VARCHAR(255)")
+    private String title;
+
+    @Column(columnDefinition = "TEXT")
+    private String description;
+
+    @Column(columnDefinition = "VARCHAR(255)")
+    private String venue;
+
+    @Column(columnDefinition = "VARCHAR(255)")
+    private String city;
+
     private LocalDateTime dateTime;
-    private int totalSeats;   // Toplam koltuk
-    private BigDecimal price;        // Basit olması için int
-    @Column(length = 1000)
+
+    private BigDecimal price;
+
+    private Integer totalSeats;
+
+    @Column(columnDefinition = "TEXT")
     private String imageUrl;
 
-    public Event() {}
-    /** Optimistic Lock versiyonu — JPA bu alanı otomatik yönetir */
-    @Version
-    private Long version;
-    // getters/setters
-    public Long getId() { return id; }
-    public void setId(Long id) { this.id = id; }
-    public String getTitle() { return title; }
-    public void setTitle(String title) { this.title = title; }
-    public String getCity() { return city; }
-    public void setCity(String city) { this.city = city; }
-    public String getType() { return type; }
-    public void setType(String type) { this.type = type; }
-    public String getVenue() { return venue; }
-    public void setVenue(String venue) { this.venue = venue; }
-    public LocalDateTime getDateTime() { return dateTime; }
-    public void setDateTime(LocalDateTime dateTime) { this.dateTime = dateTime; }
-    public int getTotalSeats() { return totalSeats; }
-    public void setTotalSeats(int totalSeats) { this.totalSeats = totalSeats; }
-    public BigDecimal getPrice() { return price; }
-    public void setPrice(BigDecimal price) { this.price = price; }
-    public Long getVersion() { return version; }
-    public void setVersion(Long version) { this.version = version; }
-    public String getImageUrl() { return imageUrl; }
-    public void setImageUrl(String imageUrl) { this.imageUrl = imageUrl; }
-}
+    @Column(columnDefinition = "VARCHAR(50)")
+    private String type;
 
+    @Version
+    private Integer version;
+}

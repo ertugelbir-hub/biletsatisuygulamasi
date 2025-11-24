@@ -25,7 +25,7 @@ public class SeedConfig {
 
             }
             // USER yoksa oluştur
-            if (userRepo.findByUsername("user").isEmpty()) {
+            if (userRepo.findByUsername("ayse").isEmpty()) {
                 User u1 = new User();
                 u1.setUsername("ayse");
                 u1.setPassword(encoder.encode("ayse123")); // giriş şifresi
@@ -36,7 +36,7 @@ public class SeedConfig {
 
             }
             // USER2 yoksa oluştur
-            if (userRepo.findByUsername("user").isEmpty()) {
+            if (userRepo.findByUsername("ahmet").isEmpty()) {
                 User u2 = new User();
                 u2.setUsername("ahmet");
                 u2.setPassword(encoder.encode("ahmet123")); // giriş şifresi

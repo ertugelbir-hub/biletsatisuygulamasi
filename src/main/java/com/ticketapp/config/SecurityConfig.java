@@ -5,9 +5,13 @@ import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.config.Customizer; // Lambda DSL için gerekli
+import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -15,80 +19,81 @@ import org.springframework.security.web.AuthenticationEntryPoint;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.access.AccessDeniedHandler;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
-@EnableMethodSecurity(prePostEnabled = true) // method-level security
+
+@EnableMethodSecurity(prePostEnabled = true)
 @Configuration
 @EnableWebSecurity
 public class SecurityConfig {
 
     @Bean
-
-    public SecurityFilterChain securityFilterChain(HttpSecurity http, JwtAuthFilter jwt) throws Exception {
-
+    public SecurityFilterChain securityFilterChain(HttpSecurity http, JwtAuthFilter jwtAuthFilter) throws Exception {
         http
-                .cors()
-                .and()
-                // CSRF'yi kapat (Swagger'dan POST yapacağız)
-                .csrf(csrf -> csrf.disable())
-                .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-                // Bu URL'ler serbest
-                .authorizeHttpRequests(auth -> auth
-                        .requestMatchers(
-                                "/api/auth/**",
-                                "/v3/api-docs/**",
-                                "/swagger-ui/**",
-                                "/swagger-ui.html",
-                                "/h2-console/**"
-                        ).permitAll()
-                        // sadece giriş yapmış kullanıcı:
-                        .requestMatchers("/api/tickets/**").authenticated() // Bilet işlemleri: login zorunlu
-                        // etkinlik oluşturmayı sadece ADMIN’e bırakmak istersen:
-                        // Etkinlik CRUD -> sadece ADMIN
-                        .requestMatchers(HttpMethod.POST,   "/api/events/**").hasRole("ADMIN")
-                        .requestMatchers(HttpMethod.PUT,    "/api/events/**").hasRole("ADMIN")
-                        .requestMatchers(HttpMethod.DELETE, "/api/events/**").hasRole("ADMIN")
-                        // Event listesini herkes görebilsin (istersen authenticated yapabilirsin)
-                        .requestMatchers(HttpMethod.GET, "/api/events/**").permitAll()
-                        .requestMatchers(HttpMethod.GET, "/api/events/reports/**").hasRole("ADMIN")
-                        .requestMatchers("/api/reports/**").hasRole("ADMIN")
-                          // Tickets: login şart
-                                .requestMatchers("/api/tickets/**").authenticated()
-                        .anyRequest().permitAll()
+            // 1. CORS ve CSRF ayarları (Lambda DSL)
+           .cors(Customizer.withDefaults())
+           .csrf(AbstractHttpConfigurer::disable)
 
+            // 2. Oturum Yönetimi (Stateless)
+           .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
 
-                )
-                .exceptionHandling(e -> e
-                        .accessDeniedHandler(accessDeniedHandler())
-                        .authenticationEntryPoint(authenticationEntryPoint())
-                )
+            // 3. Yetkilendirme Kuralları (authorizeHttpRequests kullanıyoruz)
+           .authorizeHttpRequests(auth -> auth
+               .requestMatchers(
+                    "/api/auth/**",
+                    "/v3/api-docs/**",
+                    "/swagger-ui/**",
+                    "/swagger-ui.html",
+                    "/h2-console/**"
+                ).permitAll()
 
+                // Etkinlikleri okumak (GET) herkese açık
+               .requestMatchers(HttpMethod.GET, "/api/events/**").permitAll()
 
+                // Admin yetkileri
+               .requestMatchers(HttpMethod.POST, "/api/events/**").hasRole("ADMIN")
+               .requestMatchers(HttpMethod.PUT, "/api/events/**").hasRole("ADMIN")
+               .requestMatchers(HttpMethod.DELETE, "/api/events/**").hasRole("ADMIN")
+               .requestMatchers("/api/reports/**").hasRole("ADMIN")
+               .requestMatchers("/api/events/reports/**").hasRole("ADMIN")
+               .requestMatchers("/api/users/**").hasRole("ADMIN")
 
+                // Kullanıcı yetkileri
+               .requestMatchers("/api/tickets/**").authenticated()
 
-        // H2 console için frame header'larını kapat
-                .headers(headers -> headers.frameOptions(frame -> frame.disable()))
+                // Geri kalan her şey için giriş şart
+               .anyRequest().authenticated()
+            )
 
-                .addFilterBefore(jwt, UsernamePasswordAuthenticationFilter.class);
-        //* Login ekranlarını kapatalım (istemiyoruz)
-        //*  .httpBasic(httpBasic -> httpBasic.disable())
-        //*    .formLogin(form -> form.disable());
+            // 4. Hata Yönetimi
+           .exceptionHandling(exception -> exception
+               .accessDeniedHandler(accessDeniedHandler())
+               .authenticationEntryPoint(authenticationEntryPoint())
+            )
 
+            // 5. H2 Console için Frame ayarı
+           .headers(headers -> headers.frameOptions(frame -> frame.disable()))
 
+            // 6. JWT Filtresini ekle
+           .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
     }
+
     @Bean
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
     }
-    // com.ticketapp.config.SecurityConfig içinde bean olarak:
+
+    @Bean
+    public AuthenticationManager authenticationManager(AuthenticationConfiguration config) throws Exception {
+        return config.getAuthenticationManager();
+    }
+
     @Bean
     AccessDeniedHandler accessDeniedHandler() {
         return (req, res, ex) -> {
             res.setStatus(HttpServletResponse.SC_FORBIDDEN);
-            res.setContentType("application/json");
-            res.getWriter().write("""
-            {"error":"forbidden","message":"You don't have permission to perform this action"}
-        """);
+            res.setContentType("application/json;charset=UTF-8");
+            res.getWriter().write("{\"error\":\"forbidden\",\"message\":\"Bu işlem için yetkiniz yok.\"}");
         };
     }
 
@@ -96,11 +101,8 @@ public class SecurityConfig {
     AuthenticationEntryPoint authenticationEntryPoint() {
         return (req, res, ex) -> {
             res.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-            res.setContentType("application/json");
-            res.getWriter().write("""
-            {"error":"unauthorized","message":"Authentication required"}
-        """);
+            res.setContentType("application/json;charset=UTF-8");
+            res.getWriter().write("{\"error\":\"unauthorized\",\"message\":\"Lütfen giriş yapınız.\"}");
         };
     }
-
 }

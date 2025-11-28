@@ -25,13 +25,16 @@ public class TicketService {
     private final EventRepository eventRepo;
     private final TicketRepository ticketRepo;
     private final UserRepository userRepo;
+    private final NotificationProducer notificationProducer;
 
     public TicketService(EventRepository eventRepo,
                          TicketRepository ticketRepo,
-                         UserRepository userRepo) {
+                         UserRepository userRepo,
+                         NotificationProducer notificationProducer) {
         this.eventRepo = eventRepo;
         this.ticketRepo = ticketRepo;
         this.userRepo = userRepo;
+        this.notificationProducer = notificationProducer;
     }
 
     /** Kaç defa tekrar denesin? Yüksek trafik için 3–5 yeterli */
@@ -74,8 +77,18 @@ public class TicketService {
                 t.setQuantity(r.quantity);
                 t.setCreatedAt(LocalDateTime.now());
 
-                // 4) Kaydet ve dön
-                return ticketRepo.save(t);
+                // 4) Önce Kaydet
+                Ticket savedTicket = ticketRepo.save(t);
+
+                // 5) Kafka'ya Mesaj At (Asenkron) 🚀
+                // Basit bir mesaj formatı oluşturuyoruz
+                String mesaj = String.format("Sayın %s, '%s' etkinliği için %d adet biletiniz başarıyla alındı! (Bilet ID: %d)",
+                        username, e.getTitle(), r.quantity, savedTicket.getId());
+
+                notificationProducer.sendNotification(mesaj);
+
+                // 6) Kaydedilen bileti dön
+                return savedTicket;
 
             } catch (OptimisticLockingFailureException ex) {
                 // Versiyon çakışması olursa tekrar dene

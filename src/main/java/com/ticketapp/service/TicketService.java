@@ -9,6 +9,7 @@ import com.ticketapp.exception.ResourceNotFoundException;
 import com.ticketapp.repository.EventRepository;
 import com.ticketapp.repository.TicketRepository;
 import com.ticketapp.repository.UserRepository;
+import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -37,6 +38,7 @@ public class TicketService {
     private static final int MAX_RETRY = 3;
 
     @Transactional
+    @CacheEvict(value = "sales_reports", key = "#r.eventId")
     public Ticket purchase(PurchaseRequest r, String username) {
         // 1) quantity validation
         if (r.quantity <= 0) {

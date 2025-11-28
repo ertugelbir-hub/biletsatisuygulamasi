@@ -6,12 +6,15 @@ import com.ticketapp.entity.Event;
 import com.ticketapp.exception.ErrorMessages;
 import com.ticketapp.exception.ResourceNotFoundException;
 import com.ticketapp.repository.EventRepository;
-import com.ticketapp.repository.EventSpecifications; // Specification sınıfımız
+import com.ticketapp.repository.EventSpecifications;
 import com.ticketapp.repository.TicketRepository;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
+import org.springframework.cache.annotation.Caching;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
-import org.springframework.data.jpa.domain.Specification; // BU IMPORT EKSİKTİ
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
@@ -38,7 +41,7 @@ public class EventService {
         this.repo = repo;
         this.ticketRepo = ticketRepo;
     }
-
+    @CacheEvict(value = "events", allEntries = true)
     public Event create(EventRequest r) {
         Event e = new Event();
         e.setTitle(r.title);
@@ -56,11 +59,15 @@ public class EventService {
         }
         return repo.save(e);
     }
-
+    @Cacheable(value = "events")
     public List<Event> list() {
+        System.out.println("--> Veritabanından çekiliyor...");
         return repo.findAll();
     }
-
+    @Caching(evict = {
+            @CacheEvict(value = "events", allEntries = true),
+            @CacheEvict(value = "sales_reports", key = "#id")
+    })
     public Event update(Long id, EventRequest r) {
         Event e = repo.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException(ErrorMessages.EVENT_NOT_FOUND));
@@ -73,23 +80,24 @@ public class EventService {
         e.setPrice(r.getPrice());
         return repo.save(e);
     }
-
+    @CacheEvict(value = "events", allEntries = true)
     public void delete(Long id) {
         if (!repo.existsById(id)) {
             throw new RuntimeException(ErrorMessages.EVENT_NOT_FOUND);
         }
         repo.deleteById(id);
     }
-
+    @Cacheable(value = "sales_reports", key = "#eventId")
     public SalesReport salesReport(Long eventId) {
+        System.out.println("--> Rapor veritabanından hesaplanıyor... (Cache Yok)");
         Event e = repo.findById(eventId)
                 .orElseThrow(() -> new RuntimeException(ErrorMessages.EVENT_NOT_FOUND));
 
         int sold = ticketRepo.sumQuantityByEventId(e.getId());
         int remaining = e.getTotalSeats() - sold;
         if (remaining < 0) remaining = 0;
-
         BigDecimal price = e.getPrice() == null ? BigDecimal.ZERO : e.getPrice();
+
         BigDecimal revenue = price.multiply(BigDecimal.valueOf(sold));
 
         return new SalesReport(

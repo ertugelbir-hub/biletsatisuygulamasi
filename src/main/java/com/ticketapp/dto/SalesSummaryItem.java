@@ -1,8 +1,11 @@
 package com.ticketapp.dto;
 
+import java.io.Serializable;
 import java.math.BigDecimal;
 
-public class SalesSummaryItem {
+public class SalesSummaryItem implements Serializable {
+    private static final long serialVersionUID = 1L;
+
     public Long eventId;
     public String title;
     public int totalSeats;

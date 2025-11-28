@@ -2,9 +2,12 @@ package com.ticketapp.dto;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 
+import java.io.Serializable;
 import java.math.BigDecimal;
 @Schema(name = "FullSalesReport", description = "Bir etkinlik için all-time ve tarih aralığı satış/metrikleri")
-public class FullSalesReport {
+public class FullSalesReport implements Serializable {
+    private static final long serialVersionUID = 1L;
+
     @Schema(example = "1", description = "Etkinlik ID")
     public Long eventId;
     @Schema(example = "Swagger Test Konseri", description = "Etkinlik adı")

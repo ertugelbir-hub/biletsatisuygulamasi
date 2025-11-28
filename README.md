@@ -1,126 +1,138 @@
-# 🎫 TicketApp
+🎫 Ticket App - Bilet Satış ve Etkinlik Yönetim Sistemi
 
-Java Spring Boot ile geliştirilmiş basit bir **bilet satış uygulaması**.
+Modern mimari ile geliştirilmiş, Dockerize edilmiş, güvenli ve ölçeklenebilir Bilet Satış Platformu.
+Kullanıcılar etkinlikleri arayabilir ve bilet satın alabilir; Yöneticiler (Admin) ise gelişmiş panel üzerinden etkinlikleri, satışları ve kullanıcıları yönetebilir.
 
-Bu proje, kullanıcıların etkinlikleri görüntüleyip bilet satın
-alabildiği; admin tarafında ise etkinlik ekleme, silme, güncelleme gibi
-işlemlerin yapılabildiği temel bir backend uygulamasıdır.
+🚀 Özellikler
 
-------------------------------------------------------------------------
+👤 Kullanıcı Paneli
 
-## 📌 Özellikler
+Gelişmiş Arama: Şehir, Tür ve İsim bazlı dinamik filtreleme (Specification API).
 
-### 👤 Kullanıcı İşlemleri
+Bilet Satın Alma: Stok takibi ve eşzamanlılık (concurrency) koruması ile güvenli satın alım.
 
--   Kayıt olma\
--   Giriş yapma (JWT ile)\
--   Bilet satın alma
+Biletlerim: Satın alınan biletlerin listelenmesi ve iptal/iade işlemleri.
 
-### 🎭 Etkinlik İşlemleri (Admin)
+Profil Yönetimi: Şifre değiştirme ve profil görüntüleme.
 
--   Etkinlik oluşturma\
--   Etkinlik güncelleme\
--   Etkinlik silme\
--   Etkinlik listeleme
+👔 Yönetici (Admin) Paneli
 
-### 🎫 Bilet Satın Alma
+Etkinlik Yönetimi: Ekleme, Düzenleme, Silme (CRUD).
 
--   Koltuk kontrolü\
--   Etkinlik ve kullanıcı doğrulama\
--   Yeterli koltuk yoksa hata döndürme\
--   Optimistic locking (aynı anda satın alma çakışmalarını önleme)
+Satış Raporları: Tarih aralığına göre ciro, satılan bilet ve doluluk oranları.
 
-### 📊 Satış Raporu
+Rapor Dışa Aktarma: Satış verilerini PDF ve Excel (CSV) olarak indirme.
 
--   Etkinlik başına satılan bilet sayısı\
--   Kalan kapasite\
--   Toplam gelir
+Kullanıcı ve Bilet Yönetimi: Kullanıcıların geçmişini görme, bilet iptal etme.
 
-------------------------------------------------------------------------
+🛠️ Teknolojiler
 
-## 🛠 Kullanılan Teknolojiler
+Backend (Java & Spring Boot)
 
--   Java 21\
--   Spring Boot\
--   Spring Web\
--   Spring Data JPA\
--   Spring Security (JWT)\
--   Lombok\
--   H2 Database (test)\
--   MySQL / H2 (dev)\
--   Mockito + JUnit test
+Framework: Spring Boot 3.5.3
 
-------------------------------------------------------------------------
+Dil: Java 21
 
-## 📂 Proje Yapısı
+Veritabanı: PostgreSQL 15
 
-    src/main/java/com/ticketapp
-     ├── controller/
-     ├── service/
-     ├── repository/
-     ├── security/
-     ├── exception/
-     └── dto/
+ORM: Hibernate 6 + Spring Data JPA (Specification Pattern)
 
-------------------------------------------------------------------------
+Güvenlik: Spring Security + JWT (JSON Web Token)
 
-## ▶️ Çalıştırma
+Dokümantasyon: Swagger UI (OpenAPI 3)
 
-1.  Projeyi klonla:
+Raporlama: OpenPDF
 
-```{=html}
-<!-- -->
-```
-    git clone https://github.com/ertugelbir-hub/biletsatisuygulamasi.git
+Frontend (React)
 
-2.  Proje klasörüne gir:
+Framework: React 18 + Vite
 
-```{=html}
-<!-- -->
-```
-    cd ticket-app
+Stil: Bootstrap 5 + Özel CSS
 
-3.  Uygulamayı başlat:
+HTTP İstemcisi: Axios (Interceptor destekli)
 
-```{=html}
-<!-- -->
-```
-    mvn spring-boot:run
+Bildirimler: React Toastify
 
-------------------------------------------------------------------------
+Altyapı (DevOps)
 
-## 🔐 Swagger Arayüzü
+Container: Docker & Docker Compose
 
-Projeyi çalıştırınca şu adresten erişilir:
+Veritabanı Yönetimi: Otomatik init.sql ve Volume yapılandırması.
 
-    http://localhost:8080/swagger-ui.html
+⚙️ Kurulum ve Çalıştırma
 
-------------------------------------------------------------------------
+Projeyi ayağa kaldırmak için bilgisayarınızda Docker ve Docker Compose yüklü olması yeterlidir.
 
-## 🧪 Test Çalıştırma
+1. Projeyi İndirin
 
-Tüm testler:
-
-    mvn test
-
-Sadece TicketService test:
-
-    mvn -Dtest=TicketServiceTest test
-
-------------------------------------------------------------------------
-
-## ⚙️ Profiller
-
--   Varsayılan profil: **dev**\
--   Testler otomatik olarak: **test** profili
-
-------------------------------------------------------------------------
-## Proje Durumu
-
-- ✅ Backend (Java 21, Spring Boot, JWT, REST API) büyük ölçüde tamamlandı.
-- 🚧 Frontend (React) geliştirme aşamasında, aktif olarak üzerinde çalışıyorum.
+git clone [https://github.com/ertugelbir-hub/biletsatisuygulamasi](https://github.com/ertugelbir-hub/biletsatisuygulamasi-frontend)
+cd ticket-app
 
 
-## 👨‍💻 Geliştirici
+2. Docker ile Başlatın (Önerilen)
 
-**Mehmet Ertuğ Elbir**
+Tek bir komutla Veritabanı, Backend ve Frontend servislerini başlatın:
+
+docker-compose up -d --build
+
+
+Bu işlem ilk seferde kütüphanelerin indirilmesi nedeniyle birkaç dakika sürebilir.
+
+3. Uygulamaya Erişin
+
+Frontend (Web Arayüzü): http://localhost:5173
+
+Backend API: http://localhost:8080
+
+Swagger API Dokümantasyonu: http://localhost:8080/swagger-ui.html
+
+🧪 Test Kullanıcıları
+
+Sistem ilk açıldığında otomatik olarak aşağıdaki kullanıcıları oluşturur:
+
+Rol
+
+Kullanıcı Adı
+
+Şifre
+
+Yetkiler
+
+Admin
+
+admin
+
+admin123
+
+Tam yetki (Panel erişimi, Raporlar, CRUD)
+
+User
+
+ahmet
+
+ahmet123
+
+Bilet alma, Biletlerim
+
+User
+
+ayse
+
+ayse123
+
+Bilet alma, Biletlerim
+
+📂 Proje Yapısı
+
+ticket-app/
+├── docker-compose.yml      # Docker orkestrasyon dosyası
+├── ticket-app/             # Backend (Spring Boot) Kodları
+│   ├── src/main/java/      # Controller, Service, Repository, Entity
+│   └── Dockerfile          # Backend imaj dosyası
+└── ticketapp-frontend/     # Frontend (React) Kodları
+    ├── src/components/     # Admin, Auth, Events bileşenleri
+    └── Dockerfile          # Frontend imaj dosyası
+
+👨‍💻 Geliştirici
+
+Mehmet Ertuğ Elbir

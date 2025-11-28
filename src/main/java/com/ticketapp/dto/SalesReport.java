@@ -2,8 +2,11 @@ package com.ticketapp.dto;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.io.Serializable;
 
-public class SalesReport {
+public class SalesReport implements Serializable {
+    private static final long serialVersionUID = 1L;
+
     public Long eventId;
     public String title;
     public String city;

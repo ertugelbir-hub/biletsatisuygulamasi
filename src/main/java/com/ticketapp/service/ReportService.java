@@ -10,6 +10,7 @@ import com.ticketapp.entity.Event;
 import com.ticketapp.exception.ErrorMessages;
 import com.ticketapp.repository.EventRepository;
 import com.ticketapp.repository.TicketRepository;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.*;
 import org.springframework.stereotype.Service;
 
@@ -23,6 +24,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+
 
 @Service
 public class ReportService {
@@ -75,7 +77,9 @@ public class ReportService {
     }
 
     // C) All time
+    @Cacheable(value = "sales_reports", key = "#eventId")
     public SalesReport allTimeSales(Long eventId) {
+        System.out.println("--> (ReportService) Rapor veritabanından hesaplanıyor... 🐢");
         var e = eventRepo.findById(eventId)
                 .orElseThrow(() -> new RuntimeException(ErrorMessages.EVENT_NOT_FOUND));
 

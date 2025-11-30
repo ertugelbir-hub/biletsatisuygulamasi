@@ -1,6 +1,8 @@
 package com.ticketapp.service;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ticketapp.dto.PurchaseRequest;
+import com.ticketapp.dto.TicketNotificationEvent;
 import com.ticketapp.entity.Event;
 import com.ticketapp.entity.Ticket;
 import com.ticketapp.entity.User;
@@ -26,6 +28,7 @@ public class TicketService {
     private final TicketRepository ticketRepo;
     private final UserRepository userRepo;
     private final NotificationProducer notificationProducer;
+    private final ObjectMapper objectMapper = new ObjectMapper();
 
     public TicketService(EventRepository eventRepo,
                          TicketRepository ticketRepo,
@@ -80,15 +83,39 @@ public class TicketService {
                 // 4) Önce Kaydet
                 Ticket savedTicket = ticketRepo.save(t);
 
-                // 5) Kafka'ya Mesaj At (Asenkron) 🚀
-                // Basit bir mesaj formatı oluşturuyoruz
-                String mesaj = String.format("Sayın %s, '%s' etkinliği için %d adet biletiniz başarıyla alındı! (Bilet ID: %d)",
-                        username, e.getTitle(), r.quantity, savedTicket.getId());
+                // --- KAFKA BİLDİRİM KISMI ---
+                try {
+                    // İstatistikleri hesapla
+                    int totalSold = ticketRepo.sumQuantityByEventId(e.getId());
+                    int remainingSeats = Math.max(0, e.getTotalSeats() - totalSold);
 
-                notificationProducer.sendNotification(mesaj);
+                    LocalDateTime yesterday = LocalDateTime.now().minusHours(24);
+                    int sold24h = ticketRepo.sumQuantityByEventIdBetweenPurchase(e.getId(), yesterday, LocalDateTime.now());
 
-                // 6) Kaydedilen bileti dön
+                    // DTO nesnesini oluştur
+                    TicketNotificationEvent notificationEvent = new TicketNotificationEvent(
+                            savedTicket.getId(),
+                            e.getId(),
+                            username,
+                            e.getTitle(),
+                            r.quantity,
+                            e.getPrice().multiply(java.math.BigDecimal.valueOf(r.quantity)),
+                            user.getEmail(),
+                            remainingSeats,
+                            sold24h
+                    );
+
+                    // Producer'a nesneyi gönder (JSON dönüşümü orada yapılacak)
+                    notificationProducer.sendNotification(notificationEvent);
+
+                } catch (Exception ex) {
+                    // Kafka hatası olsa bile bilet satışı iptal olmasın, sadece logla.
+                    System.err.println("Kafka bildirim hatası: " + ex.getMessage());
+                    ex.printStackTrace();
+                }
+
                 return savedTicket;
+
 
             } catch (OptimisticLockingFailureException ex) {
                 // Versiyon çakışması olursa tekrar dene

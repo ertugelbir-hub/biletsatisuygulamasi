@@ -41,6 +41,33 @@ public class EventService {
         this.repo = repo;
         this.ticketRepo = ticketRepo;
     }
+
+    /**
+     *   RESİM DÜZELTİCİ
+     * - Unsplash linkiyse -> Kendi parametrelerini ayarlar.
+     * - Başka bir linkse (Google vb.) -> wsrv.nl servisini kullanarak Full HD yapar.
+     */
+    private String enhanceImageUrl(String url) {
+        if (url == null || url.isBlank()) return null;
+
+        // 1. Durum: Unsplash Linki (Kendi parametreleri var, onları kullanalım)
+        if (url.contains("images.unsplash.com")) {
+            if (url.contains("w=")) url = url.replaceAll("w=\\d+", "w=1920"); else url += "&w=1920";
+            if (url.contains("h=")) url = url.replaceAll("h=\\d+", "h=1080"); else url += "&h=1080";
+            if (url.contains("q=")) url = url.replaceAll("q=\\d+", "q=90");   else url += "&q=90";
+            if (!url.contains("fit=")) url += "&fit=crop";
+            return url;
+        }
+
+        // 2. Durum: Diğer Herhangi Bir Link (Google, random site vb.)
+        // Eğer zaten wsrv.nl linki değilse, onu wsrv.nl içine paketle
+        else if (!url.contains("wsrv.nl")) {
+            // Mantık şu: https://wsrv.nl/?url=SENIN_RESMIN&w=1920&h=1080&fit=cover&output=webp
+            return "https://wsrv.nl/?url=" + url + "&w=1920&h=1080&fit=cover&output=webp&q=85";
+        }
+
+        return url;
+    }
     @CacheEvict(value = "events", allEntries = true)
     public Event create(EventRequest r) {
         Event e = new Event();
@@ -78,6 +105,9 @@ public class EventService {
         e.setDateTime(r.getDateTime());
         e.setTotalSeats(r.getTotalSeats());
         e.setPrice(r.getPrice());
+        if (r.getImageUrl() != null && !r.getImageUrl().isBlank()) {
+            e.setImageUrl(enhanceImageUrl(r.getImageUrl()));
+        }
         return repo.save(e);
     }
     @CacheEvict(value = "events", allEntries = true)

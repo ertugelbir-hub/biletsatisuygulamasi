@@ -54,7 +54,6 @@ public class SecurityConfig {
                .requestMatchers(HttpMethod.PUT, "/api/events/**").hasRole("ADMIN")
                .requestMatchers(HttpMethod.DELETE, "/api/events/**").hasRole("ADMIN")
                .requestMatchers("/api/reports/**").hasRole("ADMIN")
-               .requestMatchers("/api/events/reports/**").hasRole("ADMIN")
                .requestMatchers("/api/users/**").hasRole("ADMIN")
 
                 // Kullanıcı yetkileri

@@ -89,10 +89,13 @@ public class ReportService {
         var price = e.getPrice() == null ? BigDecimal.ZERO : e.getPrice();
         var revenue = price.multiply(BigDecimal.valueOf(soldAllTime));
 
+        LocalDateTime yesterday = LocalDateTime.now().minusHours(24);
+        int sold24h = ticketRepo.sumQuantityByEventIdBetweenPurchase(e.getId(), yesterday, LocalDateTime.now());
+
         return new SalesReport(
                 e.getId(), e.getTitle(), e.getCity(), e.getVenue(),
                 e.getDateTime(), e.getTotalSeats(),
-                soldAllTime, remaining, price, revenue
+                soldAllTime, remaining, price, revenue, sold24h
         );
 
 

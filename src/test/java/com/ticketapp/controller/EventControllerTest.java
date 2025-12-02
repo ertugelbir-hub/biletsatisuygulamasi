@@ -26,7 +26,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @WebMvcTest(controllers = EventController.class)
-@AutoConfigureMockMvc(addFilters = false) // Security filtreleri devre dışı
+@AutoConfigureMockMvc(addFilters = false)
 class EventControllerTest {
 
     @Autowired
@@ -35,22 +35,14 @@ class EventControllerTest {
     @MockBean
     EventService eventService;
 
-    // WebMvcTest altında SecurityConfig içindeki bean'ler de beklendiği için
-    // JwtAuthFilter ve JwtService'i de mock'luyoruz:
     @MockBean
     com.ticketapp.security.JwtAuthFilter jwtAuthFilter;
 
     @MockBean
     com.ticketapp.security.JwtService jwtService;
 
-    /**
-     * 1) Mutlu senaryo:
-     *    Geçerli bir body ile POST /api/events çağrıldığında
-     *    200 dönüyor ve Event JSON döndürüyor mu?
-     */
     @Test
     void create_validRequest_returnsEventAnd200() throws Exception {
-        // GIVEN (servisin döndüreceği sahte Event)
         Event e = new Event();
         e.setId(1L);
         e.setTitle("Rock Konseri");
@@ -64,7 +56,6 @@ class EventControllerTest {
         Mockito.when(eventService.create(any()))
                 .thenReturn(e);
 
-        // Geçerli JSON body
         String body = """
                 {
                   "title": "Rock Konseri",
@@ -77,7 +68,6 @@ class EventControllerTest {
                 }
                 """;
 
-        // WHEN + THEN
         mvc.perform(post("/api/events")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(body))
@@ -88,20 +78,12 @@ class EventControllerTest {
                 .andExpect(jsonPath("$.city").value("Ankara"));
     }
 
-    /**
-     * 2) Validasyon senaryosu:
-     *    title boş gönderilirse @Valid tetikleniyor mu,
-     *    GlobalExceptionHandler "validation" hatası dönüyor mu?
-     */
     @Test
     void create_invalidRequest_titleBlank_returns400WithValidationError() throws Exception {
-        // Servisin çağrılmasına gerek yok; validasyon controller seviyesinde patlayacak.
-        // Yine de güvenlik için stub boşa dönebilir:
         Mockito.when(eventService.create(any())).thenAnswer(invocation -> {
             throw new IllegalStateException("Service should not be called when validation fails");
         });
 
-        // title boş (""), diğer alanlar geçerli
         String body = """
                 {
                   "title": "",
@@ -118,18 +100,11 @@ class EventControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(body))
                 .andExpect(status().isBadRequest())
-                // GlobalExceptionHandler'dan geldiğini anlamak için:
                 .andExpect(jsonPath("$.error").value("validation"))
-                // details[0].field = "title"
                 .andExpect(jsonPath("$.details[0].field").value("title"))
-                // EventRequest içindeki message ile aynı olmalı:
                 .andExpect(jsonPath("$.details[0].message").value("Etkinlik başlığı zorunludur"));
     }
 
-    /**
-     * 3) GET /api/events:
-     *    Servis list() dönüyorsa, controller bunu JSON liste olarak yansıtıyor mu?
-     */
     @Test
     void list_returnsEvents() throws Exception {
         Event e = new Event();
@@ -152,14 +127,9 @@ class EventControllerTest {
                 .andExpect(jsonPath("$[0].title").value("Tiyatro"))
                 .andExpect(jsonPath("$[0].city").value("Istanbul"));
     }
-    /**
-     * 4) GET /api/events/paged:
-     *    page/size/sort parametreleri ile sayfalı sonuç dönüyor mu?
-     *    JSON içindeki content[0] ve totalElements değerlerini kontrol ediyoruz.
-     */
+
     @Test
     void listPaged_returnsPagedEvents() throws Exception {
-        // GIVEN
         Event e = new Event();
         e.setId(1L);
         e.setTitle("Konferans");
@@ -179,24 +149,17 @@ class EventControllerTest {
         Mockito.when(eventService.listPaged(Mockito.any(Pageable.class)))
                 .thenReturn(page);
 
-        // WHEN + THEN
         mvc.perform(get("/api/events/paged")
                         .param("page", "0")
                         .param("size", "10")
                         .param("sort", "id,desc"))
                 .andExpect(status().isOk())
                 .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
-                // content[0].id = 1
                 .andExpect(jsonPath("$.content[0].id").value(1L))
                 .andExpect(jsonPath("$.content[0].title").value("Konferans"))
-                // toplam eleman sayısı = 1
                 .andExpect(jsonPath("$.totalElements").value(1));
     }
-    /**
-     * 5) GET /api/events/search:
-     *    city + type + q + paging parametreleri ile arama yapılıyor mu?
-     *    Page<Event> JSON yapısı doğru mu?
-     */
+
     @Test
     void search_withCityTypeAndQuery_returnsPagedEvents() throws Exception {
         Event e = new Event();
@@ -239,12 +202,9 @@ class EventControllerTest {
                 .andExpect(jsonPath("$.totalElements").value(1));
     }
 
-    /**
-     * 6) GET /api/events/reports/sales:
-     *    Belirli bir etkinlik için SalesReport dönüyor mu?
-     */
     @Test
     void sales_returnsSalesReportForEvent() throws Exception {
+        // BURASI GÜNCELLENDİ: 11. Parametre Eklendi (50)
         SalesReport report = new SalesReport(
                 10L,
                 "Rock Gecesi",
@@ -255,7 +215,8 @@ class EventControllerTest {
                 600,
                 400,
                 BigDecimal.valueOf(250),
-                BigDecimal.valueOf(150000)
+                BigDecimal.valueOf(150000),
+                50 // soldLast24Hours
         );
 
         Mockito.when(eventService.salesReport(10L))

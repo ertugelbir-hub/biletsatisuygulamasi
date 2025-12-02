@@ -17,8 +17,9 @@ public class SalesReport implements Serializable {
     public int remaining;   // totalSeats - sold
     public BigDecimal price;
     public BigDecimal revenue; // sold * event.price
+    public int soldLast24Hours;
 
-    public SalesReport(Long eventId, String title,String city,String venue,LocalDateTime dateTime, int totalSeats, int sold, int remaining,  BigDecimal price,BigDecimal revenue) {
+    public SalesReport(Long eventId, String title,String city,String venue,LocalDateTime dateTime, int totalSeats, int sold, int remaining,  BigDecimal price, BigDecimal revenue, int soldLast24Hours) {
         this.eventId = eventId;
         this.title = title;
         this.city = city;
@@ -29,5 +30,6 @@ public class SalesReport implements Serializable {
         this.remaining = remaining;
         this.price = price;
         this.revenue = revenue;
+        this.soldLast24Hours = soldLast24Hours;
     }
 }

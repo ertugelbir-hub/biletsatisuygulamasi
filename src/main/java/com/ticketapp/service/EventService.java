@@ -100,9 +100,12 @@ public class EventService {
 
         BigDecimal revenue = price.multiply(BigDecimal.valueOf(sold));
 
+        LocalDateTime yesterday = LocalDateTime.now().minusHours(24);
+        int sold24h = ticketRepo.sumQuantityByEventIdBetweenPurchase(e.getId(), yesterday, LocalDateTime.now());
+
         return new SalesReport(
                 e.getId(), e.getTitle(), e.getCity(), e.getVenue(),
-                e.getDateTime(), e.getTotalSeats(), sold, remaining, price, revenue
+                e.getDateTime(), e.getTotalSeats(), sold, remaining, price, revenue, sold24h
         );
     }
 
@@ -132,9 +135,12 @@ public class EventService {
             BigDecimal price = e.getPrice() == null ? BigDecimal.ZERO : e.getPrice();
             BigDecimal revenue = price.multiply(BigDecimal.valueOf(sold));
 
+            LocalDateTime yesterday = LocalDateTime.now().minusHours(24);
+            int sold24h = ticketRepo.sumQuantityByEventIdBetweenPurchase(e.getId(), yesterday, LocalDateTime.now());
+
             list.add(new SalesReport(
                     e.getId(), e.getTitle(), e.getCity(), e.getVenue(),
-                    e.getDateTime(), e.getTotalSeats(), sold, remaining, price, revenue
+                    e.getDateTime(), e.getTotalSeats(), sold, remaining, price, revenue, sold24h
             ));
         }
         return list;

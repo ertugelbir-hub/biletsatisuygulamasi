@@ -12,13 +12,15 @@ public class NotificationConsumer {
     private final ObjectMapper objectMapper;
     private final SimpMessagingTemplate messagingTemplate; // WebSocket için
     private final EmailService emailService;               // Mail için
+    private final PdfService pdfService;
 
     public NotificationConsumer(ObjectMapper objectMapper,
                                 SimpMessagingTemplate messagingTemplate,
-                                EmailService emailService) {
+                                EmailService emailService,PdfService pdfService) {
         this.objectMapper = objectMapper;
         this.messagingTemplate = messagingTemplate;
         this.emailService = emailService;
+        this.pdfService = pdfService;
     }
 
     @KafkaListener(topics = "notification-topic", groupId = "ticket-notification-group")
@@ -48,43 +50,23 @@ public class NotificationConsumer {
             messagingTemplate.convertAndSend("/topic/sales", event);
 
             // -----------------------------------------------------------
-            // GÖREV 3: MAİL GÖNDERME (Mailtrap) 📧
-            // -----------------------------------------------------------
+            // 3. --- PDF OLUŞTURMA VE GÖNDERME (YENİ) ---
+
+            // A) PDF'i oluştur (Byte dizisi olarak döner)
+            byte[] pdfBytes = pdfService.createTicketPdf(event);
+
+            // B) Mail içeriğini hazırla
             String mailBaslik = "Biletiniz Hazır! 🎟️ - " + event.getEventTitle();
+            String mailIcerigi = "Merhaba " + event.getUsername() + ",\n\n" +
+                    "Satın alma işleminiz başarıyla gerçekleşti.\n" +
+                    "Dijital biletiniz EKTE yer almaktadır.\n\n" +
+                    "İyi eğlenceler!\nTicketApp Ekibi";
 
-            // Mail içeriğine de istatistikleri koyalım ki zengin olsun
-            String mailIcerigi = String.format("""
-                Merhaba %s,
-                
-                "%s" etkinliği için bilet işleminiz tamamlandı.
-                
-                --------------------------------------
-                🎫 Bilet ID: %d
-                🔢 Adet: %d
-                💰 Toplam Tutar: %s ₺
-                --------------------------------------
-                
-                📈 Etkinlik Durumu:
-                Şu an kalan bilet sayısı: %d
-                Son 24 saatte satılan: %d
-                
-                İyi eğlenceler dileriz!
-                TicketApp Ekibi
-                """,
-                    event.getUsername(),
-                    event.getEventTitle(),
-                    event.getTicketId(),
-                    event.getQuantity(),
-                    event.getTotalPrice(),
-                    event.getRemainingSeats(),
-                    event.getSoldLast24Hours());
-
-            // Maili gönder (Kullanıcının maili yoksa test mailine at)
+            // C) Maili PDF ekiyle gönder
+            // Eğer kullanıcının maili yoksa test maili kullan
             String emailTo = (event.getEmail() != null && !event.getEmail().isEmpty()) ? event.getEmail() : "test@example.com";
-            emailService.sendTicketInfo(emailTo, mailBaslik, mailIcerigi);
 
-            System.out.println("✅ MAİL GÖNDERİLDİ: " + emailTo);
-
+            emailService.sendTicketWithPdf(emailTo, mailBaslik, mailIcerigi, "bilet.pdf", pdfBytes);
         } catch (Exception e) {
             System.err.println("❌ Mesaj işleme hatası: " + e.getMessage());
             e.printStackTrace();

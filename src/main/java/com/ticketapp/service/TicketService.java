@@ -4,11 +4,13 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ticketapp.dto.PurchaseRequest;
 import com.ticketapp.dto.TicketNotificationEvent;
 import com.ticketapp.entity.Event;
+import com.ticketapp.entity.Seat;
 import com.ticketapp.entity.Ticket;
 import com.ticketapp.entity.User;
 import com.ticketapp.exception.ErrorMessages;
 import com.ticketapp.exception.ResourceNotFoundException;
 import com.ticketapp.repository.EventRepository;
+import com.ticketapp.repository.SeatRepository;
 import com.ticketapp.repository.TicketRepository;
 import com.ticketapp.repository.UserRepository;
 import org.springframework.cache.annotation.CacheEvict;
@@ -29,15 +31,18 @@ public class TicketService {
     private final UserRepository userRepo;
     private final NotificationProducer notificationProducer;
     private final ObjectMapper objectMapper = new ObjectMapper();
+    private final SeatRepository seatRepo;
 
     public TicketService(EventRepository eventRepo,
                          TicketRepository ticketRepo,
                          UserRepository userRepo,
-                         NotificationProducer notificationProducer) {
+                         NotificationProducer notificationProducer,
+                         SeatRepository seatRepo) {
         this.eventRepo = eventRepo;
         this.ticketRepo = ticketRepo;
         this.userRepo = userRepo;
         this.notificationProducer = notificationProducer;
+        this.seatRepo = seatRepo;
     }
 
     /** Kaç defa tekrar denesin? Yüksek trafik için 3–5 yeterli */
@@ -56,31 +61,48 @@ public class TicketService {
                 .orElseThrow(() -> new ResourceNotFoundException(ErrorMessages.USER_NOT_FOUND));
 
         // 3) Event'i bul
-        Event event = eventRepo.findById(r.eventId)
+        Event e = eventRepo.findById(r.eventId)
                 .orElseThrow(() -> new ResourceNotFoundException(ErrorMessages.EVENT_NOT_FOUND));
+        // KOLTUK KONTROLLERİ
+        if (r.seatIds == null || r.seatIds.isEmpty()) {
+            throw new RuntimeException("Lütfen koltuk seçiniz.");
+        }
 
-        // 4) Optimistic locking ile satın alma
+        // 3) Optimistic locking (Retry Mekanizması - Senin istediğin yapı)
         for (int attempt = 1; attempt <= MAX_RETRY; attempt++) {
             try {
-                // 1) Event oku (güncel hali)
-                Event e = eventRepo.findById(r.eventId)
-                        .orElseThrow(() -> new ResourceNotFoundException(ErrorMessages.EVENT_NOT_FOUND));
+                // Güncel veriyi çekelim
+                List<Seat> selectedSeats = seatRepo.findAllById(r.seatIds);
 
-                int sold = ticketRepo.sumQuantityByEventId(e.getId());
-                int remaining = e.getTotalSeats() - sold;
-
-                if (remaining < r.quantity) {
-                    throw new RuntimeException(ErrorMessages.NO_SEATS_LEFT + " (kalan: " + remaining + ")");
+                if (selectedSeats.size() != r.seatIds.size()) {
+                    throw new RuntimeException("Seçilen bazı koltuklar bulunamadı.");
                 }
 
-                // 3) Bileti oluştur
+                // Koltuklar dolu mu kontrol et?
+                for (Seat seat : selectedSeats) {
+                    if (seat.isSold()) {
+                        throw new RuntimeException("Koltuk " + seat.getRowName() + seat.getSeatNumber() + " maalesef dolu! 😔");
+                    }
+                }
+
+                // --- SATIŞ İŞLEMİ ---
+
+                // A) Koltukları Dolu Yap
+                for (Seat seat : selectedSeats) {
+                    seat.setSold(true);
+                    seatRepo.save(seat); // Burada versiyon çakışması olursa catch'e düşer
+                }
+
+                // B) Bileti Oluştur
                 Ticket t = new Ticket();
                 t.setEvent(e);
                 t.setUsername(username);
-                t.setQuantity(r.quantity);
+                t.setQuantity(r.seatIds.size());
                 t.setCreatedAt(LocalDateTime.now());
 
-                // 4) Önce Kaydet
+                // Not: Senin sisteminde stok "total - satılan" olduğu için
+                // event.setCurrentStock() çağırmıyoruz!
+
                 Ticket savedTicket = ticketRepo.save(t);
 
                 // --- KAFKA BİLDİRİM KISMI ---

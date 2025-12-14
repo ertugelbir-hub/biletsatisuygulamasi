@@ -53,7 +53,8 @@ public class TicketController {
     public ResponseEntity<Ticket> purchase(@RequestBody @Valid PurchaseRequest req,
                                            Principal principal) {
         // principal.getName() = token’daki username
-        return ResponseEntity.ok(service.purchase(req,principal.getName()));
+        Ticket ticket = service.purchase(req, principal.getName());
+        return ResponseEntity.ok(ticket);
     }
     @GetMapping
     public ResponseEntity<List<Ticket>> listAll() {

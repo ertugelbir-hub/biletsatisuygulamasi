@@ -3,6 +3,7 @@ package com.ticketapp.controller;
 import com.ticketapp.dto.EventRequest;
 import com.ticketapp.dto.SalesReport;
 import com.ticketapp.entity.Event;
+import com.ticketapp.entity.Seat;
 import com.ticketapp.service.EventService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -20,9 +21,11 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
-
+import com.ticketapp.repository.SeatRepository;
+import com.ticketapp.entity.Seat;
 import java.time.LocalDateTime;
 import java.util.List;
+
 
 import static com.ticketapp.config.SwaggerExamples.*;
 @Tag(name = "Events", description = "Etkinlik oluşturma, listeleme ve yönetim işlemleri")
@@ -32,9 +35,10 @@ import static com.ticketapp.config.SwaggerExamples.*;
 public class EventController {
 
     private final EventService service;
-
-    public EventController(EventService service) {
+    private final SeatRepository seatRepo;
+    public EventController(EventService service, SeatRepository seatRepo) {
         this.service = service;
+        this.seatRepo = seatRepo;
     }
     // CREATE (body doğrulaması)
     @Operation(summary = "Event oluştur (ADMIN)")
@@ -122,7 +126,10 @@ public class EventController {
         Pageable pageable = PageRequest.of(page, size, Sort.by(direction, sort));
         return service.search(city, type, q, from, to, pageable);
     }
-
+    @GetMapping("/{id}/seats")
+    public ResponseEntity<List<Seat>> getEventSeats(@PathVariable Long id) {
+        return ResponseEntity.ok(seatRepo.findByEventIdOrderByRowNameAscSeatNumberAsc(id));
+    }
 
 
 }

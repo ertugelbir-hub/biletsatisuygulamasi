@@ -7,6 +7,7 @@ import com.ticketapp.exception.ErrorMessages;
 import com.ticketapp.exception.ResourceNotFoundException;
 import com.ticketapp.repository.EventRepository;
 import com.ticketapp.repository.EventSpecifications;
+import com.ticketapp.repository.SeatRepository;
 import com.ticketapp.repository.TicketRepository;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
@@ -22,6 +23,8 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
+import com.ticketapp.repository.SeatRepository;
+import com.ticketapp.entity.Seat;
 
 @Service
 public class EventService {
@@ -36,10 +39,12 @@ public class EventService {
 
     private final EventRepository repo;
     private final TicketRepository ticketRepo;
+    private final SeatRepository seatRepo;
 
-    public EventService(EventRepository repo, TicketRepository ticketRepo) {
+    public EventService(EventRepository repo, TicketRepository ticketRepo, SeatRepository seatRepo) {
         this.repo = repo;
         this.ticketRepo = ticketRepo;
+        this.seatRepo = seatRepo;
     }
 
     /**
@@ -84,7 +89,9 @@ public class EventService {
             int randomIndex = new Random().nextInt(DEFAULT_IMAGES.length);
             e.setImageUrl(DEFAULT_IMAGES[randomIndex]);
         }
-        return repo.save(e);
+        Event savedEvent = repo.save(e);
+        generateSeatsForEvent(savedEvent);
+        return savedEvent;
     }
     @Cacheable(value = "events")
     public List<Event> list() {
@@ -174,5 +181,28 @@ public class EventService {
             ));
         }
         return list;
+    }
+    //Koltuk üretici
+    public void generateSeatsForEvent(Event event) {
+        int totalSeats = event.getTotalSeats();
+        int seatsPerRow = 10;
+        int seatsCreated = 0;
+        char rowChar = 'A';
+        // Kapasite dolana kadar sıra üret
+        while (seatsCreated < totalSeats) {
+            String rowName = String.valueOf(rowChar);
+
+            // O sıranın içindeki koltukları üret (1'den 10'a kadar)
+            for (int number = 1; number <= seatsPerRow; number++) {
+                // Eğer toplam kapasiteye ulaştıysak döngüyü kır (Örn: 14. koltukta dur)
+                if (seatsCreated >= totalSeats) break;
+
+                Seat seat = new Seat(rowName, number, event);
+                seatRepo.save(seat);
+                seatsCreated++;
+            }
+            rowChar++;// Bir sonraki sıraya geç (A -> B -> C...)
+
+        }
     }
 }

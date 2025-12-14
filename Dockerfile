@@ -9,7 +9,7 @@ COPY pom.xml .
 COPY src ./src
 
 # Projeyi Docker'ın içinde paketle (Testleri atla)
-RUN mvn clean package -DskipTests
+RUN mvn clean package -Dmaven.test.skip=true
 
 # --- AŞAMA 2: ÇALIŞTIRMA (RUN) ---
 # Sadece Java yüklü hafif bir Linux

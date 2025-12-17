@@ -71,6 +71,19 @@ public class TicketService {
             System.out.println("🎄 YILBAŞI İNDİRİMİ UYGULANDI! Yeni Fiyat: " + finalPrice);
         }
 
+        // 1. Durum: Eğer "YILBASI" kuponu kullanılıyorsa sınır 2'dir.
+        if (r.couponCode != null && !r.couponCode.isEmpty()) {
+            if (r.quantity > 2) {
+                throw new RuntimeException("🏷️ İndirim kuponu ile en fazla 2 bilet alabilirsiniz!");
+            }
+        }
+        // 2. Durum: Kupon yoksa veya başka bir kodsa sınır 6'dır.
+        else {
+            if (r.quantity > 6) {
+                throw new RuntimeException("✋ Tek seferde en fazla 6 bilet alabilirsiniz!");
+            }
+        }
+
         // KOLTUK KONTROLLERİ
         if (r.seatIds == null || r.seatIds.isEmpty()) {
             throw new RuntimeException("Lütfen koltuk seçiniz.");

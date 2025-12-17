@@ -20,6 +20,7 @@ public class Ticket implements Serializable {
     private String username;  // Şimdilik basit tutuyoruz
     private int quantity;     // Kaç adet
     private LocalDateTime createdAt; // Basit tutalım (ileride LocalDateTime yaparız)
+    private java.math.BigDecimal price;
 
     public Ticket() {}
 
@@ -37,4 +38,6 @@ public class Ticket implements Serializable {
 
     public LocalDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
+    public java.math.BigDecimal getPrice() { return price; }
+    public void setPrice(java.math.BigDecimal price) {this.price = price; }
 }

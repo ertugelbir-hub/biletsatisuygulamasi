@@ -63,6 +63,14 @@ public class TicketService {
         // 3) Event'i bul
         Event e = eventRepo.findById(r.eventId)
                 .orElseThrow(() -> new ResourceNotFoundException(ErrorMessages.EVENT_NOT_FOUND));
+
+        java.math.BigDecimal finalPrice = e.getPrice();
+        // Eğer kupon kodu "YILBASI" ise %20 indir
+        if ("YILBASI".equals(r.couponCode)) {
+            finalPrice = finalPrice.multiply(java.math.BigDecimal.valueOf(0.80));
+            System.out.println("🎄 YILBAŞI İNDİRİMİ UYGULANDI! Yeni Fiyat: " + finalPrice);
+        }
+
         // KOLTUK KONTROLLERİ
         if (r.seatIds == null || r.seatIds.isEmpty()) {
             throw new RuntimeException("Lütfen koltuk seçiniz.");
@@ -96,6 +104,7 @@ public class TicketService {
                 // B) Bileti Oluştur
                 Ticket t = new Ticket();
                 t.setEvent(e);
+                t.setPrice(finalPrice);
                 t.setUsername(username);
                 t.setQuantity(r.seatIds.size());
                 t.setCreatedAt(LocalDateTime.now());
@@ -121,7 +130,7 @@ public class TicketService {
                             username,
                             e.getTitle(),
                             r.quantity,
-                            e.getPrice().multiply(java.math.BigDecimal.valueOf(r.quantity)),
+                            finalPrice.multiply(java.math.BigDecimal.valueOf(r.quantity)),
                             user.getEmail(),
                             remainingSeats,
                             sold24h

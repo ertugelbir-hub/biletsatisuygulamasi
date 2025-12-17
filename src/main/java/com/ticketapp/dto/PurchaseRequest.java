@@ -10,5 +10,6 @@ public class PurchaseRequest {
     @Positive(message = "Bilet sayısı pozitif olmalıdır")public int quantity;
     public List<Long> seatIds;
     //Not: @NotBlank sadece String’ler için; Long, Integer gibi tiplerde @NotNull kullan.
+    public String couponCode;
 
 }

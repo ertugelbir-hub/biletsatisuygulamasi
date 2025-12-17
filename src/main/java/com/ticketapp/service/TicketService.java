@@ -135,8 +135,9 @@ public class TicketService {
                     System.err.println("Kafka bildirim hatası: " + ex.getMessage());
                     ex.printStackTrace();
                 }
-
+                checkDynamicPricing(e);
                 return savedTicket;
+
 
 
             } catch (OptimisticLockingFailureException ex) {
@@ -154,7 +155,9 @@ public class TicketService {
 
         // Normalde buraya düşmez ama derleyici için:
         throw new RuntimeException(ErrorMessages.PURCHASE_FAILED);
+
     }
+
 
 
 
@@ -183,6 +186,29 @@ public class TicketService {
 
         // totalSeats'i değiştirmiyoruz; satış sum(quantity) ile hesaplanıyor.
         ticketRepo.deleteById(ticketId);
+    }
+    // 👇 DİNAMİK FİYATLANDIRMA MANTIĞI
+    private void checkDynamicPricing(Event event) {
+        // 1. Şu ana kadar o etkinlik için satılan bilet sayısını bul
+        int totalSold = ticketRepo.sumQuantityByEventId(event.getId());
+
+        // 2. Doluluk oranını hesapla (Örn: 80/100 = 0.8)
+        double occupancyRate = (double) totalSold / event.getTotalSeats();
+
+        // 3. KURAL: Eğer doluluk %80'i (0.80) geçtiyse zam yap
+        if (occupancyRate >= 0.80) {
+            // Mevcut fiyatı al
+            java.math.BigDecimal currentPrice = event.getPrice();
+
+            // Fiyatı %10 artır (1.10 ile çarp)
+            java.math.BigDecimal newPrice = currentPrice.multiply(java.math.BigDecimal.valueOf(1.10));
+
+            // Yeni fiyatı kaydet
+            event.setPrice(newPrice);
+            eventRepo.save(event);
+
+            System.out.println("📢 DİNAMİK FİYAT: " + event.getTitle() + " %80 doluluğu geçti! Yeni Fiyat: " + newPrice);
+        }
     }
 
     public List<Ticket> myTickets(String username) {

@@ -15,6 +15,7 @@ import com.ticketapp.repository.TicketRepository;
 import com.ticketapp.repository.UserRepository;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.dao.OptimisticLockingFailureException;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
@@ -22,6 +23,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
+
 
 @Service
 public class TicketService {
@@ -32,17 +34,20 @@ public class TicketService {
     private final NotificationProducer notificationProducer;
     private final ObjectMapper objectMapper = new ObjectMapper();
     private final SeatRepository seatRepo;
+    private final SimpMessagingTemplate messagingTemplate;
 
     public TicketService(EventRepository eventRepo,
                          TicketRepository ticketRepo,
                          UserRepository userRepo,
                          NotificationProducer notificationProducer,
-                         SeatRepository seatRepo) {
+                         SeatRepository seatRepo,
+                         SimpMessagingTemplate messagingTemplate) {
         this.eventRepo = eventRepo;
         this.ticketRepo = ticketRepo;
         this.userRepo = userRepo;
         this.notificationProducer = notificationProducer;
         this.seatRepo = seatRepo;
+        this.messagingTemplate = messagingTemplate;
     }
 
     /** Kaç defa tekrar denesin? Yüksek trafik için 3–5 yeterli */
@@ -112,6 +117,15 @@ public class TicketService {
                 for (Seat seat : selectedSeats) {
                     seat.setSold(true);
                     seatRepo.save(seat); // Burada versiyon çakışması olursa catch'e düşer
+
+                // WebSocket koltuk dolu
+                try {
+                    // Frontend'deki SeatMap.jsx burayı dinliyor (/topic/events/{id}/seats)
+                    messagingTemplate.convertAndSend("/topic/events/" + e.getId() + "/seats", selectedSeats);
+                } catch (Exception ex) {
+                    // Socket hatası verirse sistem durmasın, loglasın yeter
+                    System.err.println("Socket mesajı gönderilemedi: " + ex.getMessage());
+                }
                 }
 
                 // B) Bileti Oluştur

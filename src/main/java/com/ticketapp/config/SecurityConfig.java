@@ -43,7 +43,8 @@ public class SecurityConfig {
                     "/swagger-ui/**",
                     "/swagger-ui.html",
                     "/h2-console/**",
-                       "/ws-ticket/**"
+                       "/ws-ticket/**",
+                       "/ws/**"
                 ).permitAll()
 
                 // Etkinlikleri okumak (GET) herkese açık

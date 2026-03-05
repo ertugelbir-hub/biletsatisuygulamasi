@@ -2,6 +2,7 @@ package com.ticketapp.entity;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
+import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "seats")
@@ -15,7 +16,7 @@ public class Seat {
     private int seatNumber; // 1, 2, 3...
 
     private boolean isSold = false; // Dolu mu boş mu?
-
+    private LocalDateTime holdExpiresAt;
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "event_id")
     @JsonIgnore // Sonsuz döngü olmasın diye event detayını gizliyoruz
@@ -38,4 +39,6 @@ public class Seat {
     public void setSold(boolean sold) { isSold = sold; }
     public Event getEvent() { return event; }
     public void setEvent(Event event) { this.event = event; }
+    public LocalDateTime getHoldExpiresAt() {return holdExpiresAt;}
+    public void setHoldExpiresAt(LocalDateTime holdExpiresAt) {this.holdExpiresAt = holdExpiresAt;}
 }

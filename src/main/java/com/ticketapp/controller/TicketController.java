@@ -1,6 +1,7 @@
 package com.ticketapp.controller;
 
 import com.ticketapp.dto.PurchaseRequest;
+import com.ticketapp.entity.Seat;
 import com.ticketapp.entity.Ticket;
 import com.ticketapp.service.TicketService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -12,9 +13,12 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-
+import com.ticketapp.repository.SeatRepository;
 import java.security.Principal;
+import java.time.LocalDateTime;
 import java.util.List;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 
 import static com.ticketapp.config.SwaggerExamples.ERROR_RES;
 import static com.ticketapp.config.SwaggerExamples.TICKET_PURCHASE_REQ;
@@ -25,6 +29,11 @@ import static com.ticketapp.config.SwaggerExamples.TICKET_PURCHASE_REQ;
 
 public class TicketController {
     private final TicketService service;
+    @Autowired
+    private SeatRepository seatRepository;
+
+    @Autowired
+    private SimpMessagingTemplate messagingTemplate;
 
     public TicketController(TicketService service) {
         this.service = service;
@@ -93,6 +102,47 @@ public class TicketController {
     public ResponseEntity<List<Ticket>> myTickets(Principal principal) {
         List<Ticket> list = service.myTickets(principal.getName());
         return ResponseEntity.ok(list);
+    }
+    @PostMapping("/events/{eventId}/seats/{seatId}/hold")
+    public ResponseEntity<?> holdSeat(@PathVariable Long eventId, @PathVariable Long seatId) {
+
+        Seat seat = seatRepository.findById(seatId)
+                .orElseThrow(() -> new RuntimeException("Koltuk bulunamadı"));
+
+        // 1. Kontrol: Koltuk zaten satılmış mı?
+        if (seat.isSold()) {
+            return ResponseEntity.badRequest().body("Bu koltuk zaten satılmış!");
+        }
+
+        // 2. Kontrol: Koltuk başkası tarafından rezerve edilmiş mi? (Süresi dolmamışsa)
+        if (seat.getHoldExpiresAt() != null && seat.getHoldExpiresAt().isAfter(LocalDateTime.now())) {
+            return ResponseEntity.badRequest().body("Bu koltuk şu an başkası tarafından tutuluyor!");
+        }
+
+        // 3. İşlem: 10 Dakika Rezerve Et
+        seat.setHoldExpiresAt(LocalDateTime.now().plusMinutes(10));
+        seatRepository.save(seat);
+
+        // 4. Haber Ver: WebSocket ile herkese duyur (Rengi Sarıya dönsün)
+        messagingTemplate.convertAndSend("/topic/events/" + eventId + "/seats", seat);
+
+        return ResponseEntity.ok("Koltuk 10 dakikalığına sizin!");
+    }
+    @PostMapping("/events/{eventId}/seats/{seatId}/unhold")
+    public ResponseEntity<?> unholdSeat(@PathVariable Long eventId, @PathVariable Long seatId) {
+        Seat seat = seatRepository.findById(seatId)
+                .orElseThrow(() -> new RuntimeException("Koltuk bulunamadı"));
+
+        // Eğer koltuk satılmamışsa, rezervasyon süresini temizle
+        if (!seat.isSold()) {
+            seat.setHoldExpiresAt(null);
+            seatRepository.save(seat);
+
+            // Herkese koltuğun boşa çıktığını duyur
+            messagingTemplate.convertAndSend("/topic/events/" + eventId + "/seats", seat);
+        }
+
+        return ResponseEntity.ok("Rezervasyon iptal edildi.");
     }
 
 

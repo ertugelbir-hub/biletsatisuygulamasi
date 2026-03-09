@@ -25,7 +25,7 @@ import com.ticketapp.repository.SeatRepository;
 import com.ticketapp.entity.Seat;
 import java.time.LocalDateTime;
 import java.util.List;
-
+import com.ticketapp.repository.EventRepository;
 
 import static com.ticketapp.config.SwaggerExamples.*;
 @Tag(name = "Events", description = "Etkinlik oluşturma, listeleme ve yönetim işlemleri")
@@ -36,9 +36,11 @@ public class EventController {
 
     private final EventService service;
     private final SeatRepository seatRepo;
-    public EventController(EventService service, SeatRepository seatRepo) {
+    private final EventRepository eventRepository;
+    public EventController(EventService service, SeatRepository seatRepo, EventRepository eventRepository) {
         this.service = service;
         this.seatRepo = seatRepo;
+        this.eventRepository = eventRepository;
     }
     // CREATE (body doğrulaması)
     @Operation(summary = "Event oluştur (ADMIN)")
@@ -71,7 +73,18 @@ public class EventController {
                     examples = @ExampleObject(name="List", value = "[" + EVENT_RES + "]")
             ))
     @GetMapping
-    public ResponseEntity<List<Event>> list() { return ResponseEntity.ok(service.list());
+    public ResponseEntity<List<Event>> list(@RequestParam(required = false, defaultValue = "newest") String sort) {
+        List<Event> events;
+
+        if ("best-selling".equalsIgnoreCase(sort)) {
+            // "best-selling" istenirse çok satanları getir
+            events = eventRepository.findAllByOrderBySoldTicketsDesc();
+        } else {
+            // Bir şey belirtilmezse veya "newest" denirse yeniye/tarihe göre getir
+            events = eventRepository.findAllByOrderByEventDateAsc();
+        }
+
+        return ResponseEntity.ok(events);
     }
     @PreAuthorize("hasRole('ADMIN')")
     @PutMapping("/{id}")      // ADMIN
@@ -130,6 +143,7 @@ public class EventController {
     public ResponseEntity<List<Seat>> getEventSeats(@PathVariable Long id) {
         return ResponseEntity.ok(seatRepo.findByEventIdOrderByRowNameAscSeatNumberAsc(id));
     }
+
 
 
 }

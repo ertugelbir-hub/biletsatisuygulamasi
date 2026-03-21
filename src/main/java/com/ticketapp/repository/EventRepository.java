@@ -13,9 +13,9 @@ public interface EventRepository extends JpaRepository<Event, Long>, JpaSpecific
     // JpaSpecificationExecutor sayesinde 'findAll(Specification, Pageable)' metodu otomatik gelir.
     // Ekstra kod yazmana gerek yok.
     // 1. Yeniye Göre (Etkinlik tarihine göre en yakın olanları getirir)
-    List<Event> findAllByOrderByEventDateAsc();
+    List<Event> findAllByOrderByDateTimeAsc();
 
     // 2. Çok Satanlara Göre (Koltuk tablosuyla birleştirip, satılan koltuk sayısına göre çoktan aza sıralar)
-    @Query("SELECT e FROM Event e LEFT JOIN e.seats s ON s.isSold = true GROUP BY e.id ORDER BY COUNT(s.id) DESC")
+    @Query("SELECT e FROM Event e LEFT JOIN Seat s ON s.event.id = e.id AND s.isSold = true GROUP BY e.id ORDER BY COUNT(s.id) DESC")
     List<Event> findAllByOrderBySoldTicketsDesc();
 }

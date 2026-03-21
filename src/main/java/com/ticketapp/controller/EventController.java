@@ -81,7 +81,7 @@ public class EventController {
             events = eventRepository.findAllByOrderBySoldTicketsDesc();
         } else {
             // Bir şey belirtilmezse veya "newest" denirse yeniye/tarihe göre getir
-            events = eventRepository.findAllByOrderByEventDateAsc();
+            events = eventRepository.findAllByOrderByDateTimeAsc();
         }
 
         return ResponseEntity.ok(events);

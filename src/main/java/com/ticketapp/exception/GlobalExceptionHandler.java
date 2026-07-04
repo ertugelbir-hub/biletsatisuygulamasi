@@ -14,10 +14,7 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 
 import java.time.format.DateTimeParseException;
-import java.util.ArrayList;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.stream.Collectors;
 @RestControllerAdvice
 public class GlobalExceptionHandler {
@@ -182,6 +179,17 @@ public class GlobalExceptionHandler {
         body.put("error", "error");
         body.put("message", "Beklenmeyen bir hata oluştu");
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(body);
+    }
+    @ExceptionHandler(RateLimitException.class)
+    public ResponseEntity<Map<String, Object>> handleRateLimitException(RateLimitException ex) {
+        Map<String, Object> errorResponse = new HashMap<>();
+        // React tarafındaki i18n anahtarını (key) gönderiyoruz
+        errorResponse.put("message", ex.getMessage());
+        errorResponse.put("retryAfter", ex.getRetryAfter());
+
+        return ResponseEntity
+                .status(HttpStatus.TOO_MANY_REQUESTS) // 429 Too Many Requests
+                .body(errorResponse);
     }
 }
 

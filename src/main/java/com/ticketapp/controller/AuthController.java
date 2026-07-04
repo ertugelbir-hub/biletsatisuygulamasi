@@ -1,5 +1,6 @@
 package com.ticketapp.controller;
 
+import com.ticketapp.config.RateLimit;
 import com.ticketapp.dto.LoginRequest;
 import com.ticketapp.dto.RegisterRequest;
 import com.ticketapp.entity.User;
@@ -79,6 +80,7 @@ public class AuthController {
                     )
             )
     })
+    @RateLimit(capacity = 3)
     @PostMapping("/login")
     public ResponseEntity<?> login(@RequestBody @Valid LoginRequest req) {
         if (req.getUsername() == null || req.getUsername().isBlank()
